@@ -1,8 +1,7 @@
-# ============================================================
-# Project root (defined ONCE, inherited by all included files)
-# ============================================================
-
-PROJECT_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+# ------------------------------------------------------------
+# Project root (directory of top-level Makefile)
+# ------------------------------------------------------------
+PROJECT_ROOT := $(abspath $(dir $(firstword $(MAKEFILE_LIST))))
 
 # ============================================================
 # Board selection
@@ -11,6 +10,7 @@ PROJECT_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 BOARD ?= icesugar
 include $(PROJECT_ROOT)/boards/$(BOARD)/board.mk
 include $(PROJECT_ROOT)/boards/$(BOARD)/flash.mk
+include $(PROJECT_ROOT)/mk/flash.mk
 
 # ============================================================
 # Include selected design (defines PROJECT_NAME, TOP_MODULE,
@@ -68,30 +68,10 @@ gui: $(JSON)
 		--gui
 
 # ============================================================
-# Dependency visualization (Graphviz)
+# Tooling
 # ============================================================
-
-DEPS_DOT := $(PROJECT_ROOT)/build/deps.dot
-DEPS_PNG := $(PROJECT_ROOT)/build/deps.png
-
-.PHONY: deps-dot
-deps-dot:
-	@mkdir -p $(PROJECT_ROOT)/build
-	@echo "digraph fpga_libs {" > $(DEPS_DOT)
-	@echo "  rankdir=LR;" >> $(DEPS_DOT)
-	@echo "  node [shape=box];" >> $(DEPS_DOT)
-	@for dep in $(LIB_DEPS); do \
-		src=$${dep%%:*}; \
-		dst=$${dep##*:}; \
-		echo "  \"$$src\" -> \"$$dst\";" >> $(DEPS_DOT); \
-	done
-	@echo "}" >> $(DEPS_DOT)
-	@echo "Wrote $(DEPS_DOT)"
-
-.PHONY: deps
-deps: deps-dot
-	dot -Tpng $(DEPS_DOT) -o $(DEPS_PNG)
-	@echo "Wrote $(DEPS_PNG)"
+include $(PROJECT_ROOT)/mk/deps.mk
+include $(PROJECT_ROOT)/mk/help.mk
 
 # ============================================================
 # Clean
