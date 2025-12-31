@@ -1,9 +1,10 @@
 module top(input clk, output LED_R, output LED_G, output LED_B);
-    reg [25:0] counter = 0;
+    localparam N = 23;
+    reg [N:0] counter = 0;
     
-    assign LED_B = ~counter[22];
-    assign LED_R = ~counter[21];
-    assign LED_G = ~counter[23];
+    assign LED_B = ~counter[N];
+    assign LED_R = ~counter[N-1];
+    assign LED_G = ~counter[N-2];
     
     always @(posedge clk)
     begin

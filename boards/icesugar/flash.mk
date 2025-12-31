@@ -6,8 +6,8 @@ ICELINK_DIR = /tmp/iCELink
 
 .PHONY: flash
 flash: build
-	mkdir -p $(ICELINK_DIR)
-	mount $(ICELINK_DEV) $(ICELINK_DIR)
-	cp $(BIN) $(ICELINK_DIR)
+	sudo mkdir -p $(ICELINK_DIR)
+	sudo mount $(ICELINK_DEV) $(ICELINK_DIR)
+	sudo cp $(BIN) $(ICELINK_DIR)
 	sync
-	umount $(ICELINK_DIR)
+	sudo umount $(ICELINK_DIR)
