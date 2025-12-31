@@ -1,0 +1,3 @@
+FPGA_FAMILY := ice40
+FPGA_DEVICE := up5k
+FPGA_PACKAGE := sg48
