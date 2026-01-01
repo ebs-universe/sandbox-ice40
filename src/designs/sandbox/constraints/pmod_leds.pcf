@@ -1,9 +1,9 @@
 # SiPeed PMOD LED8 on PMOD2 (PMOD T1A)
-set_io  L7      45
-set_io  L5      43
-set_io  L3      38
-set_io  L1      36
-set_io  L8      46 
-set_io  L6      44
-set_io  L4      42
-set_io  L2      37
+set_io  LED_L7  45
+set_io  LED_L5  43
+set_io  LED_L3  38
+set_io  LED_L1  36
+set_io  LED_L8  46 
+set_io  LED_L6  44
+set_io  LED_L4  42
+set_io  LED_L2  37

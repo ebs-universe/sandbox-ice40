@@ -55,74 +55,73 @@ endif
 
 .PHONY: pinout-md
 pinout-md: $(PCF) $(FPGA_PINMAP)
-	@echo "Generating Markdown pinout with IOB names from $(FPGA_PINMAP)"
+	@echo "Generating Markdown pinout with differential pair info"
 	@awk '\
-		# ---------------------------------------------- \
-		# First file: pinmap CSV (comma-separated) \
-		# ---------------------------------------------- \
 		BEGIN { FS="," } \
 		FNR==NR { \
 			if ($$1 ~ /^[0-9]+$$/) { \
-				pin_iob[$$1]  = $$2; \
-				pin_bank[$$1] = $$3; \
+				pin_iob[$$1]      = $$2; \
+				pin_bank[$$1]     = $$3; \
+				pin_type[$$1]     = $$4; \
+				pin_diff_role[$$1]= $$5; \
+				pin_diff_peer[$$1]= $$6; \
 			} \
 			next; \
 		} \
-		# ---------------------------------------------- \
-		# Second file: PCF (whitespace-separated) \
-		# ---------------------------------------------- \
 		FNR==1 { FS="[[:space:]]+" } \
 		/^set_io/ { \
-			signal = $$2; \
-			pin = ""; \
-			opts = ""; \
-			for (i = NF; i > 0; i--) \
-				if ($$i ~ /^[0-9]+$$/) { pin = $$i; break } \
-			for (i = 4; i <= NF; i++) opts = opts " " $$i; \
+			signal=$$2; pin=""; opts=""; \
+			for (i=NF; i>0; i--) \
+				if ($$i ~ /^[0-9]+$$/) { pin=$$i; break } \
+			for (i=4; i<=NF; i++) opts = opts " " $$i; \
 			gsub(/^ /, "", opts); \
-			printf "| %s | %s | %s | %s | %s |\n", \
-				signal, pin, pin_iob[pin], pin_bank[pin], opts; \
+			printf "| %s | %s | %s | %s | %s | %s | %s | %s |\n", \
+				signal, pin, \
+				pin_iob[pin], pin_bank[pin], pin_type[pin], \
+				pin_diff_role[pin], pin_diff_peer[pin], opts; \
 		} \
 		BEGIN { \
-			print "| Signal | Pin | IOB | Bank | Options |"; \
-			print "|--------|-----|-----|------|---------|"; \
-		} \
-	' $(FPGA_PINMAP) $(PCF) > $(PCF_DOCS)
-	@echo "  -> $(PCF_DOCS)"
+			print "| Signal | Pin | IOB | Bank | IO Type | Diff Role | Diff Partner | Options |"; \
+			print "|--------|-----|-----|------|---------|-----------|--------------|---------|"; \
+		}' $(FPGA_PINMAP) $(PCF) > $(PCF_DOCS)
 
 .PHONY: pinout-csv
 pinout-csv: $(PCF) $(FPGA_PINMAP)
-	@echo "Generating CSV pinout with IOB names from $(FPGA_PINMAP)"
+	@echo "Generating CSV pinout with differential pair info"
 	@awk '\
 		# ---------------------------------------------- \
-		# First file: pinmap CSV (comma-separated) \
+		# First file: pinmap CSV \
 		# ---------------------------------------------- \
 		BEGIN { FS="," } \
 		FNR==NR { \
 			if ($$1 ~ /^[0-9]+$$/) { \
-				pin_iob[$$1]  = $$2; \
-				pin_bank[$$1] = $$3; \
+				pin_iob[$$1]      = $$2; \
+				pin_bank[$$1]     = $$3; \
+				pin_type[$$1]     = $$4; \
+				pin_diff_role[$$1]= $$5; \
+				pin_diff_peer[$$1]= $$6; \
 			} \
 			next; \
 		} \
 		# ---------------------------------------------- \
-		# Second file: PCF (whitespace-separated) \
+		# Second file: PCF \
 		# ---------------------------------------------- \
 		FNR==1 { FS="[[:space:]]+" } \
 		/^set_io/ { \
 			signal = $$2; \
-			pin = ""; \
-			opts = ""; \
-			for (i = NF; i > 0; i--) \
-				if ($$i ~ /^[0-9]+$$/) { pin = $$i; break } \
-			for (i = 4; i <= NF; i++) opts = opts " " $$i; \
+			pin=""; opts=""; \
+			for (i=NF; i>0; i--) \
+				if ($$i ~ /^[0-9]+$$/) { pin=$$i; break } \
+			for (i=4; i<=NF; i++) opts = opts " " $$i; \
 			gsub(/^ /, "", opts); \
-			printf "%s,%s,%s,%s,%s\n", \
-				signal, pin, pin_iob[pin], pin_bank[pin], opts; \
+			printf "%s,%s,%s,%s,%s,%s,%s,%s\n", \
+				signal, pin, \
+				pin_iob[pin], pin_bank[pin], pin_type[pin], \
+				pin_diff_role[pin], pin_diff_peer[pin], opts; \
 		} \
-		BEGIN { print "signal,pin,iob,bank,options" } \
-	' $(FPGA_PINMAP) $(PCF) > $(PCF_CSV)
-	@echo "  -> $(PCF_CSV)"
+		BEGIN { \
+			print "signal,pin,iob,bank,io_type,diff_role,diff_partner,options"; \
+		}' $(FPGA_PINMAP) $(PCF) > $(PCF_CSV)
 
 .PHONY: pinout-doc
 pinout-doc: pinout-md pinout-csv
