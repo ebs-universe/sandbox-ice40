@@ -1,0 +1,5 @@
+# On-board Jumpers on PMOD 4
+set_io  JMP_S1      18
+set_io  JMP_S2      19
+set_io  JMP_S3      20
+set_io  JMP_S4      21

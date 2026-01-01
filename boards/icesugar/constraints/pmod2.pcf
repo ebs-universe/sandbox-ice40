@@ -1,0 +1,9 @@
+# PMOD 2 (Digilent PMOD Spec Numbering T1A)
+set_io  P2_1        45
+set_io  P2_2        43
+set_io  P2_3        38
+set_io  P2_4        36
+set_io  P2_7        46 
+set_io  P2_8        44
+set_io  P2_9        42
+set_io  P2_10       37

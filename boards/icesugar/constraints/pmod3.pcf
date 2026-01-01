@@ -1,0 +1,9 @@
+# PMOD 3 (Digilent PMOD Spec Numbering T1A)
+set_io  P3_1        32 
+set_io  P3_2        28
+set_io  P3_3        26
+set_io  P3_4        23
+set_io  P3_7        34
+set_io  P3_8        31
+set_io  P3_9        27
+set_io  P3_10       25

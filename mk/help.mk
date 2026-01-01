@@ -1,19 +1,34 @@
-# ------------------------------------------------------------
-# Common phony targets
-# ------------------------------------------------------------
-
 .PHONY: help
 
 help:
 	@echo ""
-	@echo "Common targets:"
+	@echo "Usage:"
+	@echo "  make <target> [VARIABLE=value]"
+	@echo ""
+	@echo "Build:"
 	@echo "  build        Build FPGA bitstream (default)"
 	@echo "  gui          Open nextpnr GUI"
-	@echo "  flash        Program board"
+	@echo ""
+	@echo "Simulation:"
+	@echo "  sim          Run all testbenches (full simulation build)"
+	@echo "  wave         List generated waveforms for all testbenches"
+	@echo "  wave-gui     Open all testbench waveforms in GTKWave"
+	@echo ""
+	@echo "Board / Hardware:"
+	@echo "  flash        Program the target board"
+	@echo ""
+	@echo "Analysis & Tooling:"
+	@echo "  check-pcf    Check for duplicate physical pin assignments in PCFs"
+	@echo "  pinout-md     Generate pinout documentation (Markdown)"
+	@echo "  pinout-csv    Generate pinout documentation (CSV)"
+	@echo "  pinout-doc    Generate all pinout documentation formats"
 	@echo "  deps         Show library dependency graph"
-	@echo "  clean        Remove build artifacts"
+	@echo "  rtlview      Generate RTL visualization (DOT/SVG)"
+	@echo ""
+	@echo "Housekeeping:"
+	@echo "  clean        Remove all build artifacts"
 	@echo ""
 	@echo "Variables:"
-	@echo "  BOARD=<name>     Select target board"
-	@echo "  DESIGN=<name>    Select design"
+	@echo "  BOARD=<name>   Select target board"
+	@echo "  DESIGN=<name>  Select design"
 	@echo ""

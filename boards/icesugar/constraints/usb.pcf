@@ -1,0 +1,3 @@
+set_io  USB_DP          10
+set_io  USB_DN          9
+set_io  USB_PULLUP      11

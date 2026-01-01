@@ -1,0 +1,5 @@
+# PMOD 4 (Digilent PMOD Spec Numbering T1)
+set_io  P4_1        21
+set_io  P4_2        20
+set_io  P4_3        19
+set_io  P4_4        18

@@ -1,0 +1,2 @@
+set_io  RX      4
+set_io  TX      6
