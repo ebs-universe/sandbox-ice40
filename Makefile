@@ -85,6 +85,7 @@ include $(PROJECT_ROOT)/mk/constraints.mk
 include $(PROJECT_ROOT)/mk/deps.mk
 include $(PROJECT_ROOT)/mk/rtlview.mk
 include $(PROJECT_ROOT)/mk/sim.mk
+include $(PROJECT_ROOT)/mk/test.mk
 include $(PROJECT_ROOT)/mk/help.mk
 
 # ============================================================

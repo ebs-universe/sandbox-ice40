@@ -8,24 +8,25 @@ ifndef RUN_TESTS_INCLUDED
 RUN_TESTS_INCLUDED := 1
 
 # Required variables (must be set by including Makefile):
-#   TB_SRCS     := list of testbench .v files
-#   RTL_SRCS    := list of RTL .v files
-#   BUILD_DIR   := output directory
+#   TB_VERILOG_FILES   := list of testbench .v files
+#   VERILOG_FILES      := list of RTL .v files
+#   BUILD_PATH         := output directory
 
 .PHONY: test test-waves wave wave-gui
+TEST_ROOT := $(BUILD_PATH)/test
 
 # ------------------------------------------------------------
 # Internal macro: run all tests and print summary
 # ------------------------------------------------------------
 define RUN_TESTS
-	@mkdir -p $(BUILD_DIR); \
+	@mkdir -p $(TEST_ROOT); \
 	pass=0; fail=0; \
-	for tb in $(TB_SRCS); do \
+	for tb in $(TB_VERILOG_FILES); do \
 		name=$$(basename $$tb .v); \
-		out=$(BUILD_DIR)/$$name; \
+		out=$(TEST_ROOT)/$$name; \
 		mkdir -p $$out; \
 		printf "==> %-20s " "$$name"; \
-		if iverilog -g2012 -o $$out/sim.out $(RTL_SRCS) $$tb && \
+		if iverilog -g2012 -o $$out/sim.out $(VERILOG_FILES) $$tb && \
 		   (cd $$out && vvp sim.out $(1)); then \
 			echo "PASS"; \
 			pass=$$((pass+1)); \
@@ -52,6 +53,6 @@ test:
 
 test-wave:
 	$(call RUN_TESTS,+WAVES)
-	@find $(BUILD_DIR) -name "*.vcd" -print
+	@find $(TEST_ROOT) -name "*.vcd" -print
 
 endif

@@ -5,13 +5,13 @@
 THIS_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 RTL_DIR  := $(THIS_DIR)/../rtl
 
-TB_SRCS  := $(wildcard $(THIS_DIR)/*_tb.v)
-RTL_SRCS := $(wildcard $(RTL_DIR)/*.v)
+TB_VERILOG_FILES  := $(wildcard $(THIS_DIR)/*_tb.v)
+VERILOG_FILES := $(wildcard $(RTL_DIR)/*.v)
 
-BUILD_DIR := $(THIS_DIR)/build
+BUILD_PATH := $(THIS_DIR)/build
 
 include $(THIS_DIR)/../../../mk/test.mk
 
 .PHONY: clean
 clean:
-	rm -rf $(BUILD_DIR)
+	rm -rf $(BUILD_PATH)
