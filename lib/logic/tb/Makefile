@@ -10,7 +10,7 @@ RTL_SRCS := $(wildcard $(RTL_DIR)/*.v)
 
 BUILD_DIR := $(THIS_DIR)/build
 
-include $(THIS_DIR)/../../../mk/lib_tests.mk
+include $(THIS_DIR)/../../../mk/test.mk
 
 .PHONY: clean
 clean:

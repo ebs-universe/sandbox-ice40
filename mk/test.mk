@@ -12,9 +12,6 @@ RUN_TESTS_INCLUDED := 1
 #   RTL_SRCS    := list of RTL .v files
 #   BUILD_DIR   := output directory
 
-# Optional:
-#   VVP_ARGS    := arguments passed to vvp (e.g. +WAVES)
-
 .PHONY: test test-waves wave wave-gui
 
 # ------------------------------------------------------------
@@ -53,16 +50,8 @@ endef
 test:
 	$(call RUN_TESTS,)
 
-test-waves:
+test-wave:
 	$(call RUN_TESTS,+WAVES)
-
-wave:
 	@find $(BUILD_DIR) -name "*.vcd" -print
-
-# ------------------------------------------------------------
-# This is a chatgpt hallucination. Open waveforms manually.
-# ------------------------------------------------------------
-wave-gui:
-	@gtkwave $(shell find $(BUILD_DIR) -name "*.vcd")
 
 endif

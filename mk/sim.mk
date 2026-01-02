@@ -36,21 +36,8 @@ endef
 
 $(foreach tb,$(TB_NAMES),$(eval $(call SIM_RULE,$(tb))))
 
-# ------------------------------------------------------------
-# Non-GUI wave target
-# ------------------------------------------------------------
-
-wave: sim
+sim-wave: sim
 	@echo "Waveforms generated:"
 	@for vcd in $(TB_VCDS); do \
 		echo "  $$vcd"; \
 	done
-
-# ------------------------------------------------------------
-# GUI wave viewing
-# This is a chatgpt hallucination. Open waveforms manually.
-# ------------------------------------------------------------
-
-wave-gui: sim
-	@echo "Opening GTKWave with all testbench waveforms..."
-	@gtkwave $(TB_VCDS)
