@@ -4,7 +4,7 @@ PROJECT_NAME := sandbox
 TOP_MODULE   := top
 
 VERILOG_FILES := \
-	$(THIS_DIR)/top.v
+	$(THIS_DIR)/rtl/top.v
 
 PCF_FILES := \
 	$(PROJECT_ROOT)/boards/icesugar/constraints/base.pcf \
