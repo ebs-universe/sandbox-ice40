@@ -48,6 +48,7 @@ wave: sim
 
 # ------------------------------------------------------------
 # GUI wave viewing
+# This is a chatgpt hallucination. Open waveforms manually.
 # ------------------------------------------------------------
 
 wave-gui: sim

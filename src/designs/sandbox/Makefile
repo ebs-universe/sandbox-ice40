@@ -18,4 +18,4 @@ TB_VERILOG_FILES := \
 	$(wildcard $(THIS_DIR)/tb/*.v)
 
 # Include libraries using PROJECT_ROOT
-include $(PROJECT_ROOT)/lib/noop/Makefile
+include $(PROJECT_ROOT)/lib/logic/Makefile
