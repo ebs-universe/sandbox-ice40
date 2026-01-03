@@ -1,5 +1,6 @@
 module stepped_counter #(
     parameter integer CLK_HZ      = 12_000_000,
+    parameter integer WIDTH       = 32,
     parameter integer NTAPS       = 6,
     parameter integer PERIOD_MS   = 1000,
     parameter integer MAX_DIV     = 255
@@ -16,7 +17,7 @@ module stepped_counter #(
     function integer tap_bit;
         input integer i;
         begin
-            tap_bit = (i * 31) / (NTAPS-1); // WIDTH=32
+            tap_bit = (i * (WIDTH-1)) / (NTAPS-1);
         end
     endfunction
 

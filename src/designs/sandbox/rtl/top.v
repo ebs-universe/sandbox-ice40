@@ -1,5 +1,7 @@
 module top #(
-    parameter integer CLK_HZ = 12_000_000
+    parameter integer CLK_HZ = 12_000_000,
+    parameter integer WIDTH  = 27,
+    parameter integer NTAPS  = 6
 )(
     input  CLK,
 
@@ -34,12 +36,12 @@ module top #(
     // ============================================================
     // Coarse system timebase
     // ============================================================
-    wire [31:0] ticks;
-    wire [5:0]  taps;
+    wire [(WIDTH-1):0] ticks;
+    wire [(NTAPS-1):0]  taps;
 
     timebase #(
-        .WIDTH(32),
-        .NTAPS(6)
+        .WIDTH(WIDTH),
+        .NTAPS(NTAPS)
     ) u_timebase (
         .clk   (CLK),
         .ticks (ticks),
@@ -66,7 +68,8 @@ module top #(
 
     stepped_counter #(
         .CLK_HZ(CLK_HZ),
-        .NTAPS(6),
+        .WIDTH(WIDTH),
+        .NTAPS(NTAPS),
         .PERIOD_MS(1000)
     ) ctr8 (
         .clk  (CLK),
@@ -97,6 +100,7 @@ module top #(
 
     rgb_blink #(
         .CLK_HZ(CLK_HZ),
+        .WIDTH(WIDTH),
         .NTAPS(6),
         .R_PERIOD_MS(1000),
         .G_PERIOD_MS(700),

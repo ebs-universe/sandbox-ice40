@@ -1,5 +1,6 @@
 module rgb_blink #(
     parameter integer CLK_HZ      = 12_000_000,
+    parameter integer WIDTH       = 32,
     parameter integer NTAPS       = 6,
 
     // Desired toggle periods (milliseconds)
@@ -24,7 +25,7 @@ module rgb_blink #(
     function integer tap_bit;
         input integer i;
         begin
-            tap_bit = (i * 31) / (NTAPS-1);  // WIDTH=32 assumed
+            tap_bit = (i * (WIDTH-1)) / (NTAPS-1);  
         end
     endfunction
 
