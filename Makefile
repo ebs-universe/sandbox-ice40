@@ -24,7 +24,9 @@ include $(PROJECT_ROOT)/src/Makefile
 
 BUILD_PATH := $(PROJECT_ROOT)/build/$(PROJECT_NAME)
 
-JSON := $(BUILD_PATH)/$(PROJECT_NAME).json
+JSON_RAW := $(BUILD_PATH)/$(PROJECT_NAME).raw.json
+JSON     := $(BUILD_PATH)/$(PROJECT_NAME).json
+BLIF := $(BUILD_PATH)/$(PROJECT_NAME).blif
 ASC  := $(BUILD_PATH)/$(PROJECT_NAME).asc
 BIN  := $(BUILD_PATH)/$(PROJECT_NAME).bin
 PCF  := $(BUILD_PATH)/$(PROJECT_NAME).pcf
@@ -50,14 +52,33 @@ $(PCF): $(PCF_FILES) | $(BUILD_PATH)
 		cat $$f >> $@; \
 	done
 
-$(JSON): $(VERILOG_FILES) | $(BUILD_PATH)
-	yosys -p "synth_$(FPGA_FAMILY) -top $(TOP_MODULE) -json $@" $(VERILOG_FILES)
+$(JSON_RAW): $(VERILOG_FILES) | $(BUILD_PATH)
+	yosys -p "\
+		read_verilog -sv $(VERILOG_FILES); \
+		hierarchy -top $(TOP_MODULE); \
+		proc; opt; techmap; opt; clean; \
+		synth_ice40 -top $(TOP_MODULE); \
+		write_json $@ \
+	"
+$(JSON): $(JSON_RAW)
+	jq '.modules |= with_entries(.value.cells |= with_entries(select(.value.type != "$$scopeinfo")))' $< > $@
 
-$(ASC): $(JSON) $(PCF) 
+# $(BLIF): $(VERILOG_FILES) | $(BUILD_PATH)
+# 	yosys -p "\
+# 		read_verilog -sv $(VERILOG_FILES); \
+# 		synth_ice40 -top $(TOP_MODULE); \
+# 		write_blif $@ \
+# 	"
+
+check-json: $(JSON)
+	@! grep -q '\$scopeinfo' $(JSON) || \
+	  (echo "ERROR: scopeinfo found in JSON"; exit 1)
+
+$(ASC): $(JSON) $(PCF)  
 	nextpnr-$(FPGA_FAMILY) \
 		--$(FPGA_DEVICE) \
 		--package $(FPGA_PACKAGE) \
-		--json $< \
+		--json $(JSON) \
 		--pcf $(PCF) \
 		--asc $@
 
