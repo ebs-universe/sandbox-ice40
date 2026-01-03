@@ -6,13 +6,17 @@ TOP_MODULE   := top
 VERILOG_FILES := \
 	$(THIS_DIR)/rtl/top.v \
 	$(THIS_DIR)/rtl/rgb_led.v \
-	$(THIS_DIR)/rtl/rgb_blink.v
+	$(THIS_DIR)/rtl/rgb_blink.v \
+	$(THIS_DIR)/rtl/counter.v
 
 PCF_FILES := \
 	$(PROJECT_ROOT)/boards/icesugar/constraints/base.pcf \
 	$(THIS_DIR)/constraints/pmod_buttons.pcf \
 	$(THIS_DIR)/constraints/pmod_leds.pcf
-	
+
+VERILOG_INCLUDES :=
+VERILOG_PACKAGES :=
+
 # ------------------------------------------------------------
 # Testbench sources (ALL .v in tb/)
 # ------------------------------------------------------------

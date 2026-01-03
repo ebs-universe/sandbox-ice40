@@ -19,5 +19,5 @@ module led8 (
         LED_L3,
         LED_L2,
         LED_L1
-    } = val;
+    } = ~val;
 endmodule

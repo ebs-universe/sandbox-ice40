@@ -27,6 +27,7 @@ help:
 	@echo "  pinout-doc    Generate all pinout documentation formats"
 	@echo "  deps         Show library dependency graph"
 	@echo "  rtlview      Generate RTL visualization (DOT/SVG)"
+	@echo "  timing       Generate timing analysis reports"
 	@echo ""
 	@echo "Housekeeping:"
 	@echo "  clean        Remove all build artifacts"

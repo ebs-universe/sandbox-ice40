@@ -1,23 +1,29 @@
 module timebase #(
-    parameter integer CLK_HZ = 12_000_000
+    parameter integer WIDTH = 32,
+    parameter integer NTAPS = 6
 )(
-    input        clk,
-    output reg [31:0] cycles = 0,
-    output reg [31:0] us     = 0
+    input  clk,
+    output reg [WIDTH-1:0] ticks,
+    output reg [NTAPS-1:0] taps
 );
-    localparam integer CYCLES_PER_US = CLK_HZ / 1_000_000;
+    reg [NTAPS-1:0] prev;
 
-    reg [$clog2(CYCLES_PER_US)-1:0] us_div = 0;
+    // Compute tap bit positions at elaboration time
+    function integer tap_bit;
+        input integer i;
+        begin
+            tap_bit = (i * (WIDTH-1)) / (NTAPS-1);
+        end
+    endfunction
+
+    integer k;
 
     always @(posedge clk) begin
-        cycles <= cycles + 1;
+        ticks <= ticks + 1;
 
-        // Free-running divider
-        us_div <= us_div + 1;
-
-        if (us_div == CYCLES_PER_US-1) begin
-            us_div <= 0;
-            us     <= us + 1;
+        for (k = 0; k < NTAPS; k = k + 1) begin
+            prev[k] <= ticks[tap_bit(k)];
+            taps[k] <= ticks[tap_bit(k)] ^ prev[k];
         end
     end
 endmodule
