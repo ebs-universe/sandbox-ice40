@@ -123,5 +123,5 @@ pinout-csv: $(PCF) $(FPGA_PINMAP)
 			print "signal,pin,iob,bank,io_type,diff_role,diff_partner,options"; \
 		}' $(FPGA_PINMAP) $(PCF) > $(PCF_CSV)
 
-.PHONY: pinout-doc
-pinout-doc: pinout-md pinout-csv
+.PHONY: pinout
+pinout: pinout-md pinout-csv

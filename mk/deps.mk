@@ -1,27 +1,35 @@
 # ============================================================
 # mk/deps.mk
 #
-# Library dependency visualization (Graphviz)
+# RTL module dependency graph (from Yosys JSON)
 # ============================================================
 
-DEPS_DOT := $(PROJECT_ROOT)/build/deps.dot
-DEPS_PNG := $(PROJECT_ROOT)/build/deps.png
+DEPS_DIR := $(BUILD_PATH)/deps
+DEPS_DOT := $(DEPS_DIR)/deps.dot
+DEPS_SVG := $(DEPS_DIR)/deps.svg
 
-.PHONY: deps deps-dot
+.PHONY: deps
 
-deps-dot:
-	@mkdir -p $(PROJECT_ROOT)/build
-	@echo "digraph fpga_libs {" > $(DEPS_DOT)
-	@echo "  rankdir=LR;" >> $(DEPS_DOT)
-	@echo "  node [shape=box];" >> $(DEPS_DOT)
-	@for dep in $(LIB_DEPS); do \
-		src=$${dep%%:*}; \
-		dst=$${dep##*:}; \
-		echo "  \"$$src\" -> \"$$dst\";" >> $(DEPS_DOT); \
-	done
-	@echo "}" >> $(DEPS_DOT)
+deps: $(DEPS_SVG)
+	@echo ""
+	@echo "RTL dependency graph generated:"
+	@echo "  $(DEPS_SVG)"
+	@echo ""
+
+$(DEPS_DIR):
+	@mkdir -p $@
+
+# ------------------------------------------------------------
+# Generate dependency DOT from Yosys JSON
+# ------------------------------------------------------------
+
+$(DEPS_DOT): $(JSON) | $(DEPS_DIR)
+	@echo "digraph rtl_deps {" > $@
+	@echo "  rankdir=LR;" >> $@
+	@echo "  node [shape=box];" >> $@
+	@jq -r '.modules | to_entries[] | .key as $parent | (.value.cells // {}) | to_entries[] | "  \"\($parent)\" -> \"\(.value.type)\";"' $(JSON) >> $@
+	@echo "}" >> $@
 	@echo "Wrote $(DEPS_DOT)"
 
-deps: deps-dot
-	dot -Tpng $(DEPS_DOT) -o $(DEPS_PNG)
-	@echo "Wrote $(DEPS_PNG)"
+$(DEPS_SVG): $(DEPS_DOT)
+	dot -Tsvg $< -o $@
