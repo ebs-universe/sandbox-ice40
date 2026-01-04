@@ -1,5 +1,6 @@
 module top #(
-    parameter integer CLK_HZ = 12_000_000,
+    parameter integer CLK_HZ     = 12_000_000,
+    parameter integer CLK_SYS_HZ = 25_000_000,
     parameter integer WIDTH  = 27,
     parameter integer NTAPS  = 6
 )(
@@ -33,6 +34,23 @@ module top #(
     output LED_B
 );
 
+    wire clk_sys;
+    wire pll_lock;
+
+    SB_PLL40_PAD #(
+        .FEEDBACK_PATH("SIMPLE"),
+        .DIVR(4'd0),   // ÷1
+        .DIVF(7'd24),  // ×25
+        .DIVQ(3'd3),   // ÷8
+        .FILTER_RANGE(3'd1)
+    ) pll_inst (
+        .PACKAGEPIN   (CLK),      // <-- DIRECT pin connection
+        .PLLOUTCORE   (clk_sys),  // <-- use this internally
+        .LOCK         (pll_lock),
+        .RESETB       (1'b1),
+        .BYPASS       (1'b0)
+    );
+
     // ============================================================
     // Coarse system timebase
     // ============================================================
@@ -43,7 +61,7 @@ module top #(
         .WIDTH(WIDTH),
         .NTAPS(NTAPS)
     ) u_timebase (
-        .clk   (CLK),
+        .clk   (clk_sys),
         .ticks (ticks),
         .taps  (taps)
     );
@@ -67,12 +85,12 @@ module top #(
     wire [7:0] ctr;
 
     stepped_counter #(
-        .CLK_HZ(CLK_HZ),
+        .CLK_HZ(CLK_SYS_HZ),
         .WIDTH(WIDTH),
         .NTAPS(NTAPS),
         .PERIOD_MS(1000)
     ) ctr8 (
-        .clk  (CLK),
+        .clk  (clk_sys),
         .taps (taps),
         .step (step),
         .ctr  (ctr)
@@ -99,14 +117,14 @@ module top #(
     wire r, g, b;
 
     rgb_blink #(
-        .CLK_HZ(CLK_HZ),
+        .CLK_HZ(CLK_SYS_HZ),
         .WIDTH(WIDTH),
         .NTAPS(6),
         .R_PERIOD_MS(1000),
         .G_PERIOD_MS(700),
         .B_PERIOD_MS(300)
     ) u_rgb_blink (
-        .clk  (CLK),
+        .clk  (clk_sys),
         .taps (taps),
         .r    (r),
         .g    (g),

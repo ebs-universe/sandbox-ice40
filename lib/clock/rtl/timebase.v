@@ -1,5 +1,5 @@
 module timebase #(
-    parameter integer WIDTH = 32,
+    parameter integer WIDTH = 26,
     parameter integer NTAPS = 6
 )(
     input  clk,

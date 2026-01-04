@@ -17,6 +17,8 @@ PCF_FILES := \
 VERILOG_INCLUDES :=
 VERILOG_PACKAGES :=
 
+SYS_CLK_MHZ := 25.000000  # System clock frequency in Hz
+
 # ------------------------------------------------------------
 # Testbench sources (ALL .v in tb/)
 # ------------------------------------------------------------

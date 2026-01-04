@@ -97,6 +97,7 @@ $(ASC): $(JSON) $(PCF)
 		--json $(JSON) \
 		--pcf $(PCF) \
 		--report $(RPT) \
+		--freq $(SYS_CLK_MHZ) \
 		--asc $@
 
 $(BIN): $(ASC)
@@ -113,6 +114,7 @@ gui: $(JSON) $(PCF)
 		--package $(FPGA_PACKAGE) \
 		--json $(JSON) \
 		--pcf $(PCF) \
+		--freq $(SYS_CLK_MHZ) \
 		--asc $(ASC) \
 		--gui
 
