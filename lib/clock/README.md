@@ -74,6 +74,10 @@ Key properties:
 📄 Detailed design and guarantees:  
 ➡️ [`doc/timebase.md`](doc/timebase.md)
 
+📄 Timing Analysis and Constraints:  
+➡️ [`doc/timing.md`](doc/timing.md)
+
+
 ---
 
 ### Tap-based timing
