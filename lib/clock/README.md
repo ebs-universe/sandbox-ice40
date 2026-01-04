@@ -1,295 +1,200 @@
-# `timebase` — Pipelined, Deterministic System Timebase (iCE40-Optimized)
+# Clocking Library (`lib/clock`)
 
-## Overview
+This directory contains the **system clocking and timebase infrastructure** for the design.
 
-`timebase` is a **single-clock, monotonic system timebase** designed specifically to be **timing-robust on iCE40 devices** when synthesized with **yosys + nextpnr**.
+The goal of this library is to provide:
 
-It provides:
+- A **single, clean clock domain**
+- A **monotonic system time reference**
+- A scalable way to generate **periodic events** without derived clocks
+- Excellent timing behavior on **iCE40 (yosys + nextpnr)**
 
-- `ticks`: a **monotonic tick counter** that increments by **exactly +1 every clock**
-- `taps`: **log-spaced, single-cycle enable pulses** derived from `ticks`
-
-The implementation is **structurally pipelined** to eliminate long carry chains and avoid synthesis “re-merging” of adders, which is critical for achieving high Fmax on iCE40.
-
-The current implementation has been tuned and validated to **remove `timebase` from the critical path entirely** in a real design.
-
----
-
-## Key Guarantees (Contract)
-
-The module provides the following **hard guarantees**:
-
-1. **Exact tick semantics**
-   - `ticks(n+1) = ticks(n) + 1`
-   - No skipped values
-   - No long-term drift
-   - No wrap anomalies
-
-2. **Fixed latency**
-   - `ticks` is a delayed view of the conceptual counter
-   - The delay is **constant and deterministic**
-
-3. **Tap alignment**
-   - `taps` are derived from the **same delayed tick stream**
-   - Each tap is a **single-cycle pulse**
-   - No glitches, no combinational hazards
-
-4. **Single clock domain**
-   - All logic is synchronous to `clk`
-   - No derived clocks
-   - `taps` must be used as **clock enables only**
+This library is deliberately conservative in structure and avoids techniques
+that are known to degrade timing or introduce CDC hazards.
 
 ---
 
-## Interface
+## High-level architecture
 
-```verilog
-module timebase #(
-    parameter integer NTAPS = 6
-)(
-    input  clk,
-    output reg [26:0]      ticks,
-    output reg [NTAPS-1:0] taps
-);
-````
+At the top level, the clocking system is organized around **one global clock**
+and **one global timebase**.
 
-### Signals
+```
+           ┌──────────────┐
+clk ─────► │  timebase    │
+           │              │
+           │  ticks[ ]    │──► time measurements, timestamps
+           │  taps[ ]     │──► periodic enables
+           └──────────────┘
+                  │
+                  ▼
+          ┌─────────────────┐
+          │ Local modules   │
+          │ (counters,      │
+          │  event gens,    │
+          │  state machines)│
+          └─────────────────┘
 
-| Signal    | Description                                         |
-| --------- | --------------------------------------------------- |
-| `clk`     | System clock                                        |
-| `ticks`   | 27-bit monotonic time counter                       |
-| `taps[k]` | 1-cycle enable pulse at a rate derived from `ticks` |
+```
+
+### Design principles
+
+- **One clock** only (no derived clocks)
+- **All logic synchronous** to that clock
+- **Time is data**, not a clock
+- **Periodic behavior is enable-based**, not clock-based
 
 ---
 
-## Internal Architecture
+## Core components
 
-### Counter Structure (Timing-Critical)
+### `rtl/timebase.v`
 
-The counter is split into two halves with a **registered carry** between them:
+The **heart of the system**.
 
-| Stage | Width   | Purpose                                 |
-| ----- | ------- | --------------------------------------- |
-| `lo`  | 12 bits | Critical carry chain (timing-limited)   |
-| `hi`  | 15 bits | Upper extension, never on critical path |
+Provides:
 
-**Important:**
-The carry from `lo` to `hi` crosses a **flip-flop**, making it *physically impossible* for yosys to collapse the design into a wide ripple adder.
+- `ticks` — a monotonic, fixed-latency system time counter
+- `taps`  — log-spaced, single-cycle enable pulses derived from `ticks`
 
-This is the key reason the design meets timing.
+Key properties:
 
----
+- Exact semantics: `ticks(n+1) = ticks(n) + 1`
+- Fixed, deterministic latency
+- Structurally pipelined to avoid long carry chains
+- Proven to be **non-critical for timing** in a real design
 
-### Pipeline Stages
-
-```
-Stage 0: lo <= lo + 1
-Stage 1: lo_carry_d <= (lo == MAX)
-Stage 2: hi <= hi + lo_carry_d
-Stage 3: publish ticks
-Stage 4: sample ticks → generate taps
-```
-
-Latency is fixed and deterministic.
+Full details:  
+📄 `doc/timebase.md`
 
 ---
 
-## Conceptual Timing Model
+### Tap-based event generation
 
-Let `ideal_ticks(n)` be a perfect +1-per-cycle counter.
+`taps` are **not clocks**.  
+They are **clock enables** derived from edge detection on `ticks`.
 
-```
-ideal_ticks(n) = ideal_ticks(n-1) + 1
-ticks(n)       = ideal_ticks(n - LATENCY)
-taps(n)        = f(ideal_ticks(n - LATENCY))
-```
-
-Where `LATENCY` is constant.
-
-**No drift is possible**, because the conceptual counter advances every cycle.
-
----
-
-## Timing Diagram
-
-### Tick Pipeline
-
-```
-clk:         ─┐_┌─┐_┌─┐_┌─┐_┌─┐_┌─┐_
-ideal_ticks:  0  1  2  3  4  5  6
-ticks:        X  X  0  1  2  3  4
-```
-
-`ticks` is simply a **retimed view**, never irregular.
-
----
-
-### Tap Generation (Edge-Based)
-
-```
-ticks[N]:     0  0  1  1  0  0  1
-prev[N]:      X  0  0  1  1  0  0
-edge:         X  0  1  0  1  0  1
-taps[N]:      X  X  0  1  0  1  0
-```
-
----
-
-## Consuming `taps` (Correct Usage)
-
-### Clock-enable style (recommended)
+Typical usage pattern:
 
 ```verilog
 always @(posedge clk) begin
-    if (taps[3]) begin
-        counter <= counter + 1;
+    if (taps[TAP]) begin
+        // do something periodically
     end
 end
-```
+````
 
-### Periodic task
+This pattern:
 
-```verilog
-always @(posedge clk) begin
-    if (taps[SLOW_TAP])
-        sample <= 1'b1;
-    else
-        sample <= 1'b0;
-end
-```
+* Preserves a single clock domain
+* Avoids CDC issues
+* Synthesizes efficiently on iCE40
+* Scales cleanly with frequency
 
-### ❌ Incorrect usage
+Tap selection, divider strategy, and tradeoffs are documented in:
 
-```verilog
-always @(posedge taps[3]) begin   // ❌ NOT A CLOCK
-    ...
-end
-```
-
-`taps` are **enables, not clocks**.
+📄 `doc/taps.md`
 
 ---
 
-## Consuming `ticks` (Correct Usage)
+## Intended usage model
 
-### Measuring elapsed time
+### What this library is for
 
-```verilog
-reg [26:0] t0, t1;
+✔ Generating periodic events (ms, 10s of ms, seconds, etc.)
+✔ Driving counters, state machines, schedulers
+✔ Time-stamping events
+✔ Rate-limiting operations
+✔ Low-power, low-toggle designs
+✔ Designs that must close timing comfortably on iCE40
 
-always @(posedge clk) begin
-    if (start) t0 <= ticks;
-    if (stop)  t1 <= ticks;
-end
+---
 
-wire [26:0] elapsed = t1 - t0;
+### What this library is *not* for
+
+❌ Generating new clocks
+❌ Clock division via toggling signals
+❌ Phase-accurate timing
+❌ Asynchronous timing control
+❌ Multi-clock CDC management
+
+If you think you need a new clock, you almost certainly want a **tap + enable** instead.
+
+---
+
+## Why this approach
+
+This library exists because several **earlier approaches failed**:
+
+* Wide monolithic counters
+* Derived clocks
+* Multi-stage event generators
+* “Clever” parameterized abstractions
+
+Those approaches are preserved in `archive/` for reference, but they are
+**not used** because they:
+
+* Introduced long carry chains
+* Degraded Fmax significantly
+
+The current design is intentionally:
+
+* Boring
+* Explicit
+* Structurally constrained
+
+And therefore **fast, predictable, and maintainable**.
+
+---
+
+## How new modules should integrate
+
+When adding a new module that needs timing:
+
+1. **Use `clk` directly**
+2. Consume `taps[k]` as a clock enable
+3. Use `ticks` for measurement or timestamps
+4. Do not generate new clocks
+5. Keep all logic synchronous
+
+If you need a new periodic rate:
+
+* Select an appropriate tap
+* Add a small local divider if needed
+
+See `doc/taps.md` for more information. A checklist and worked example are available in `doc/example.md`.
+---
+
+## Design contract (summary)
+
+* `ticks` is a **timestamp**, not a clock
+* `taps` are **enables**, not clocks
+* All logic stays in one clock domain
+* Latency is fixed and deterministic
+* Timing closure is a first-class goal
+
+---
+
+## Status
+
+* ✔ Architecture finalized
+* ✔ Timing validated
+* ✔ Documentation split and complete
+* ✔ Ready for reuse across designs
+
+Further abstraction (e.g. reusable utility packages) has been deliberately
+deferred due to toolchain fragility and will be revisited only if and when
+tool support improves.
+
+---
+
+## Where to go next
+
+* Start using `timebase` as the **single source of time**
+* Build higher-level behavior using **taps + local logic**
+* Refer to archived designs only for historical context
+
+This clocking system is intended to be **stable, boring, and reliable** —
+which is exactly what a clocking system should be.
+
 ```
-
-### Time-stamping
-
-```verilog
-always @(posedge clk) begin
-    if (event)
-        timestamp <= ticks;
-end
-```
-
-### ❌ Unsafe usage
-
-```verilog
-if (ticks == 27'd123456)  // ❌ Phase-fragile
-```
-
-Never rely on absolute tick phase.
-
----
-
-## Timing Assertion (Formal Contract)
-
-### Assertion
-
-> For all cycles `n`:
->
-> ```
-> ticks(n+1) = ticks(n) + 1
-> ```
-
-### SystemVerilog Assertion
-
-```verilog
-always @(posedge clk) begin
-    assert (ticks == $past(ticks) + 1);
-end
-```
-
-### Proof Sketch
-
-1. `lo` increments every clock
-2. `lo_carry_d` captures overflow *after* `lo` increments
-3. `hi` increments exactly when `lo_carry_d` is asserted
-4. `{hi, lo}` is registered every cycle
-5. No conditional gating exists on `ticks`
-
-Therefore:
-
-* Exactly one increment per cycle
-* Fixed latency
-* No drift
-
----
-
-## Reset Behavior
-
-Current design:
-
-* No reset
-* Power-up state undefined
-* Deterministic behavior after a few clocks
-
-If required later:
-
-* Add synchronous reset
-* Reset all pipeline registers together
-* Define `ticks = 0` at `reset_deassert + LATENCY`
-
----
-
-## Timing Characteristics (Measured)
-
-On iCE40UP5K (yosys + nextpnr):
-
-| Item                   | Result    |
-| ---------------------- | --------- |
-| Timebase critical path | ❌ Removed |
-| System Fmax            | ~71 MHz   |
-| Carry chain length     | 12 bits   |
-| Timing margin @25 MHz  | ~2.8×     |
-
-The timebase is **no longer the timing bottleneck**.
-
----
-
-## Design Rules for Consumers (TL;DR)
-
-* Treat `ticks` as a **timestamp**, not a clock
-* Treat `taps` as **clock enables**
-* Never derive clocks from either
-* Never assume phase alignment
-
----
-
-## Summary
-
-`timebase` is a **production-quality system timing primitive** for iCE40 designs:
-
-* Exact semantics
-* Deterministic latency
-* Physically enforced pipelining
-* Proven timing behavior
-* Scales cleanly with frequency and features
-
-This module is intended to be the **single source of time** for the design.
-
-Once integrated, it should not require further tuning.
-
