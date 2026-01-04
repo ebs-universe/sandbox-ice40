@@ -101,22 +101,22 @@ Tap selection, divider strategy, and tradeoffs are documented in:
 
 ### What this library is for
 
-✔ Generating periodic events (ms, 10s of ms, seconds, etc.)
-✔ Driving counters, state machines, schedulers
-✔ Time-stamping events
-✔ Rate-limiting operations
-✔ Low-power, low-toggle designs
-✔ Designs that must close timing comfortably on iCE40
+- ✔ Generating periodic events (ms, 10s of ms, seconds, etc.)
+- ✔ Driving counters, state machines, schedulers
+- ✔ Time-stamping events
+- ✔ Rate-limiting operations
+- ✔ Low-power, low-toggle designs
+- ✔ Designs that must close timing comfortably on iCE40
 
 ---
 
 ### What this library is *not* for
 
-❌ Generating new clocks
-❌ Clock division via toggling signals
-❌ Phase-accurate timing
-❌ Asynchronous timing control
-❌ Multi-clock CDC management
+- ❌ Generating new clocks
+- ❌ Clock division via toggling signals
+- ❌ Phase-accurate timing
+- ❌ Asynchronous timing control
+- ❌ Multi-clock CDC management
 
 If you think you need a new clock, you almost certainly want a **tap + enable** instead.
 
@@ -163,6 +163,7 @@ If you need a new periodic rate:
 * Add a small local divider if needed
 
 See `doc/taps.md` for more information. A checklist and worked example are available in `doc/example.md`.
+
 ---
 
 ## Design contract (summary)
