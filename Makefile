@@ -70,6 +70,7 @@ $(JSON_RAW): $(VERILOG_FILES) | $(BUILD_PATH)
 		hierarchy -top $(TOP_MODULE); \
 		proc; opt; techmap; opt; clean; \
 		synth_ice40 -top $(TOP_MODULE); \
+		stat; \
 		write_json $@ \
 	"
 

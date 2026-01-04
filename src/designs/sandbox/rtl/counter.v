@@ -1,6 +1,6 @@
 module stepped_counter #(
     parameter integer CLK_HZ      = 12_000_000,
-    parameter integer WIDTH       = 32,
+    parameter integer WIDTH       = 27,
     parameter integer NTAPS       = 6,
     parameter integer PERIOD_MS   = 1000,
     parameter integer MAX_DIV     = 255

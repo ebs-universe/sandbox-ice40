@@ -1,6 +1,6 @@
 module rgb_blink #(
     parameter integer CLK_HZ      = 12_000_000,
-    parameter integer WIDTH       = 32,
+    parameter integer WIDTH       = 27,
     parameter integer NTAPS       = 6,
 
     // Desired toggle periods (milliseconds)
