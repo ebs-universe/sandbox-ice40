@@ -1,5 +1,11 @@
 # Clocking & Timebase Library (`lib/clock`)
 
+> WARNING : This library itself was written in collaboration with ChatGPT, 
+> and the documentation was written in large part by ChatGPT. While
+> an attempt was made to guide it, clean it up, and make sure it is
+> factual and correct, a number of inaccuracies are likely to have 
+> crept in. Use with care.
+
 This directory contains the **system clocking and timebase infrastructure** used by the design.
 
 The purpose of this library is to provide a **simple, robust, timing-friendly model of time** that works well with:
