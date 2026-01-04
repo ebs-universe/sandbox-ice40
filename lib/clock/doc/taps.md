@@ -214,15 +214,15 @@ This is why the timebase + tap model scales cleanly.
 
 ## Common mistakes to avoid
 
-❌ Using `taps[TAP]` as a clock
-❌ Assuming tap frequency is exact
-❌ Using absolute phase alignment
-❌ Recomputing tap selection at runtime
+- ❌ Using `taps[TAP]` as a clock
+- ❌ Assuming tap frequency is exact
+- ❌ Using absolute phase alignment
+- ❌ Recomputing tap selection at runtime
 
-✔ Use taps as enables
-✔ Measure time using `ticks`
-✔ Accept small phase jitter
-✔ Keep selection compile-time
+- ✔ Use taps as enables
+- ✔ Measure time using `ticks`
+- ✔ Accept small phase jitter
+- ✔ Keep selection compile-time
 
 ---
 

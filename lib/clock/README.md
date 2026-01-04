@@ -1,48 +1,57 @@
-# Clocking Library (`lib/clock`)
+# Clocking & Timebase Library (`lib/clock`)
 
-This directory contains the **system clocking and timebase infrastructure** for the design.
+This directory contains the **system clocking and timebase infrastructure** used by the design.
 
-The goal of this library is to provide:
+The purpose of this library is to provide a **simple, robust, timing-friendly model of time** that works well with:
 
-- A **single, clean clock domain**
-- A **monotonic system time reference**
-- A scalable way to generate **periodic events** without derived clocks
-- Excellent timing behavior on **iCE40 (yosys + nextpnr)**
+- iCE40 devices
+- yosys + nextpnr
+- Single-clock designs
+- Enable-based timing (not derived clocks)
 
-This library is deliberately conservative in structure and avoids techniques
-that are known to degrade timing or introduce CDC hazards.
+The design prioritizes **timing closure, determinism, and clarity** over abstraction or cleverness.
+
+---
+
+## Design philosophy (TL;DR)
+
+- **One real clock** (`clk`)
+- **Time is data**, not a clock
+- **Periodic behavior uses enables**, not derived clocks
+- **All logic is synchronous**
+- **Timing closure is a first-class goal**
+
+If you think you need a new non-critical clock, you almost certainly want a **tap + local divider** instead.
 
 ---
 
 ## High-level architecture
 
-At the top level, the clocking system is organized around **one global clock**
-and **one global timebase**.
+At the center of the system is a single `timebase` module.
 
 ```
-           ┌──────────────┐
-clk ─────► │  timebase    │
-           │              │
-           │  ticks[ ]    │──► time measurements, timestamps
-           │  taps[ ]     │──► periodic enables
-           └──────────────┘
-                  │
-                  ▼
-          ┌─────────────────┐
-          │ Local modules   │
-          │ (counters,      │
-          │  event gens,    │
-          │  state machines)│
-          └─────────────────┘
+             ┌──────────────┐
+clk ───────► │  timebase    │
+             │              │
+             │  ticks       │──► timestamps, elapsed time
+             │  taps        │──► periodic enables
+             └──────────────┘
+                    │
+                    ▼
+             ┌────────────────────┐
+             │ Timed modules      │
+             │ (counters, FSMs,   │
+             │  schedulers, etc.) │
+             └────────────────────┘
 
 ```
 
-### Design principles
+All downstream modules:
+- Use **the same `clk`**
+- Consume **`taps[]` as clock enables**
+- Use **`ticks` only for measurement**
 
-- **One clock** only (no derived clocks)
-- **All logic synchronous** to that clock
-- **Time is data**, not a clock
-- **Periodic behavior is enable-based**, not clock-based
+No additional clock domains are created.
 
 ---
 
@@ -50,119 +59,106 @@ clk ─────► │  timebase    │
 
 ### `rtl/timebase.v`
 
-The **heart of the system**.
+The **core timekeeping primitive**.
 
 Provides:
-
-- `ticks` — a monotonic, fixed-latency system time counter
+- `ticks` — a monotonic system time counter
 - `taps`  — log-spaced, single-cycle enable pulses derived from `ticks`
 
 Key properties:
-
-- Exact semantics: `ticks(n+1) = ticks(n) + 1`
+- `ticks(n+1) = ticks(n) + 1` (exact semantics)
 - Fixed, deterministic latency
 - Structurally pipelined to avoid long carry chains
 - Proven to be **non-critical for timing** in a real design
 
-Full details:  
-📄 `doc/timebase.md`
+📄 Detailed design and guarantees:  
+➡️ [`doc/timebase.md`](doc/timebase.md)
 
 ---
 
-### Tap-based event generation
+### Tap-based timing
 
-`taps` are **not clocks**.  
-They are **clock enables** derived from edge detection on `ticks`.
+`taps[]` are **not clocks**.
 
-Typical usage pattern:
+Each tap is:
+- A **1-cycle pulse**
+- Log-spaced in frequency
+- Derived from edge detection on `ticks`
+
+They are intended to be used as **clock enables**:
 
 ```verilog
 always @(posedge clk) begin
     if (taps[TAP]) begin
-        // do something periodically
+        // periodic behavior
     end
 end
-````
+```
 
-This pattern:
+📄 Tap selection, dividers, and usage patterns:
+➡️ [`doc/taps.md`](doc/taps.md)
 
-* Preserves a single clock domain
-* Avoids CDC issues
-* Synthesizes efficiently on iCE40
-* Scales cleanly with frequency
-
-Tap selection, divider strategy, and tradeoffs are documented in:
-
-📄 `doc/taps.md`
+📄 Reference table of tap periods vs clock frequency:
+➡️ [`doc/frequencies.md`](doc/frequencies.md)
 
 ---
 
-## Intended usage model
+## Intended usage
 
-### What this library is for
+This library is designed for:
 
-- ✔ Generating periodic events (ms, 10s of ms, seconds, etc.)
-- ✔ Driving counters, state machines, schedulers
+- ✔ Periodic tasks (ms → seconds)
+- ✔ Counters and schedulers
+- ✔ Rate-limited state machines
 - ✔ Time-stamping events
-- ✔ Rate-limiting operations
 - ✔ Low-power, low-toggle designs
-- ✔ Designs that must close timing comfortably on iCE40
+- ✔ Designs that must comfortably meet timing on iCE40
 
 ---
 
-### What this library is *not* for
+## Explicit non-goals
+
+This library is **not** intended for:
 
 - ❌ Generating new clocks
 - ❌ Clock division via toggling signals
-- ❌ Phase-accurate timing
-- ❌ Asynchronous timing control
-- ❌ Multi-clock CDC management
+- ❌ Phase-accurate or sub-cycle timing
+- ❌ CDC management
+- ❌ Protocol-level bit timing
 
-If you think you need a new clock, you almost certainly want a **tap + enable** instead.
+For **cycle-accurate or phase-critical logic**, bypass `timebase` entirely and operate directly from `clk`.
 
 ---
 
-## Why this approach
+### About `archive/`
 
-This library exists because several **earlier approaches failed**:
+The files in `archive/` represent **earlier experimental approaches** to timing and event generation. They are preserved for reference only.
 
-* Wide monolithic counters
-* Derived clocks
-* Multi-stage event generators
-* “Clever” parameterized abstractions
-
-Those approaches are preserved in `archive/` for reference, but they are
-**not used** because they:
+They are **not used** because they:
 
 * Introduced long carry chains
-* Degraded Fmax significantly
+* Degraded placement and routing
+* Significantly reduced Fmax
 
-The current design is intentionally:
-
-* Boring
-* Explicit
-* Structurally constrained
-
-And therefore **fast, predictable, and maintainable**.
+The current architecture replaces them entirely.
 
 ---
 
-## How new modules should integrate
+## How to add a timed module
 
-When adding a new module that needs timing:
+All new timed modules should follow the same pattern:
 
-1. **Use `clk` directly**
-2. Consume `taps[k]` as a clock enable
+1. Use `clk` directly
+2. Consume `taps[k]` as **clock enables**
 3. Use `ticks` for measurement or timestamps
-4. Do not generate new clocks
+4. Add a **local divider** if exact periods are required
 5. Keep all logic synchronous
 
-If you need a new periodic rate:
+A **one-page checklist** and a **fully worked, compile-ready example module**
+are provided here:
 
-* Select an appropriate tap
-* Add a small local divider if needed
-
-See `doc/taps.md` for more information. A checklist and worked example are available in `doc/example.md`.
+📄 How to Add a Timed Module:
+➡️ [`doc/example.md`](doc/example.md)
 
 ---
 
@@ -170,16 +166,16 @@ See `doc/taps.md` for more information. A checklist and worked example are avail
 
 * `ticks` is a **timestamp**, not a clock
 * `taps` are **enables**, not clocks
-* All logic stays in one clock domain
+* There is **one clock domain**
 * Latency is fixed and deterministic
-* Timing closure is a first-class goal
+* Timing closure is intentional and validated
 
 ---
 
 ## Status
 
 * ✔ Architecture finalized
-* ✔ Timing validated
+* ✔ Timing validated (timebase removed from critical path)
 * ✔ Documentation split and complete
 * ✔ Ready for reuse across designs
 
@@ -189,13 +185,11 @@ tool support improves.
 
 ---
 
-## Where to go next
+## Next steps
 
-* Start using `timebase` as the **single source of time**
-* Build higher-level behavior using **taps + local logic**
-* Refer to archived designs only for historical context
+* Treat `timebase` as the **single source of time**
+* Build behavior using **taps + local logic**
+* Refer to `frequencies.md` when choosing taps
+* Follow the checklist when adding new timed modules
 
-This clocking system is intended to be **stable, boring, and reliable** —
-which is exactly what a clocking system should be.
-
-```
+This clocking system is intended to be **boring, predictable, and reliable** — which is exactly what a clocking system should be.
