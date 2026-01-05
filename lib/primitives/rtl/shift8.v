@@ -13,10 +13,11 @@ module shift8 #(
         if (!reset_n) begin
             data  <= INITIAL;
             d_out <= 1'b0;
-        end else if (enable) begin
-            d_out <= data[7];              
-            data  <= {data[6:0], d_in};
+        end else begin
+            if (enable) begin
+                d_out <= data[7];
+                data  <= {data[6:0], d_in};
+            end
         end
     end
-    
 endmodule
