@@ -1,7 +1,7 @@
 module top #(
     parameter integer CLK_HZ     = 12_000_000,
     parameter integer CLK_SYS_HZ = 25_000_000,
-    parameter integer NTAPS  = 7
+    parameter integer NTAPS  = 6
 )(
     input  CLK,
 
@@ -33,21 +33,28 @@ module top #(
     output LED_B
 );
 
+    // ============================================================
+    // PLL
+    // ============================================================
     wire clk_sys;
     wire pll_lock;
 
-    SB_PLL40_PAD #(
-        .FEEDBACK_PATH("SIMPLE"),
-        .DIVR(4'd0),   // ÷1
-        .DIVF(7'd24),  // ×25
-        .DIVQ(3'd3),   // ÷8
-        .FILTER_RANGE(3'd1)
-    ) pll_inst (
-        .PACKAGEPIN   (CLK),      // <-- DIRECT pin connection
-        .PLLOUTCORE   (clk_sys),  // <-- use this internally
-        .LOCK         (pll_lock),
-        .RESETB       (1'b1),
-        .BYPASS       (1'b0)
+    pll u_pll (
+        .clk_in   (CLK),
+        .clk_out  (clk_sys),
+        .pll_lock (pll_lock)
+    );
+
+    // ============================================================
+    // System reset
+    // ============================================================
+    wire sys_reset_n;
+
+    reset u_reset (
+        .clk         (clk_sys),
+        .pll_lock    (pll_lock),
+        .ext_reset_n (1'b1),
+        .reset_n     (sys_reset_n)
     );
 
     // ============================================================
@@ -59,9 +66,10 @@ module top #(
     timebase #(
         .NTAPS(NTAPS)
     ) u_timebase (
-        .clk   (clk_sys),
-        .ticks (ticks),
-        .taps  (taps)
+        .clk     (clk_sys),
+        .reset_n (sys_reset_n),
+        .ticks   (ticks),
+        .taps    (taps)
     );
 
     // ============================================================
@@ -87,10 +95,11 @@ module top #(
         .NTAPS(NTAPS),
         .PERIOD_MS(1000)
     ) ctr8 (
-        .clk  (clk_sys),
-        .taps (taps),
-        .step (step),
-        .ctr  (ctr)
+        .clk        (clk_sys),
+        .reset_n    (sys_reset_n),
+        .taps       (taps),
+        .step       (step),
+        .ctr        (ctr)
     );
 
     // ============================================================
@@ -120,11 +129,12 @@ module top #(
         .G_PERIOD_MS(700),
         .B_PERIOD_MS(300)
     ) u_rgb_blink (
-        .clk  (clk_sys),
-        .taps (taps),
-        .r    (r),
-        .g    (g),
-        .b    (b)
+        .clk        (clk_sys),
+        .reset_n    (sys_reset_n),
+        .taps       (taps),
+        .r          (r),
+        .g          (g),
+        .b          (b)
     );
 
     // ============================================================

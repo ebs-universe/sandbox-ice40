@@ -77,12 +77,12 @@ Key properties:
 - Structurally pipelined to avoid long carry chains
 - Proven to be **non-critical for timing** in a real design
 
-📄 Detailed design and guarantees:  
+
+📄 Detailed design and guarantees: 
 ➡️ [`doc/timebase.md`](doc/timebase.md)
 
-📄 Timing Analysis and Constraints:  
+📄 Timing Analysis and Constraints: 
 ➡️ [`doc/timing.md`](doc/timing.md)
-
 
 ---
 

@@ -5,7 +5,10 @@ LIB_CLOCK_INCLUDED := 1
 
 LIB_NAME := clock
 LIB_RTL  := \
-	$(THIS_DIR)/rtl/timebase.v
+	$(THIS_DIR)/rtl/timebase.v \
+	$(THIS_DIR)/rtl/periodic.v \
+	$(THIS_DIR)/rtl/pll.v \
+	$(THIS_DIR)/rtl/reset.v
 
 VERILOG_FILES += $(LIB_RTL)
 endif
