@@ -8,7 +8,8 @@ VERILOG_FILES := \
 	$(THIS_DIR)/rtl/top.v \
 	$(THIS_DIR)/rtl/rgb_led.v \
 	$(THIS_DIR)/rtl/rgb_blink.v \
-	$(THIS_DIR)/rtl/counter.v
+	$(THIS_DIR)/rtl/counter.v \
+	$(THIS_DIR)/rtl/loop.v
 
 VERILOG_INCLUDES :=
 VERILOG_PACKAGES :=
@@ -24,7 +25,7 @@ PMOD_BINDINGS := \
 # Constraints only : adds generated PCFs to PCF_FILES
 include $(PROJECT_ROOT)/mk/pmods.mk
 
-SYS_CLK_MHZ := 25.000000  # System clock frequency in Hz
+SYS_CLK_MHZ := 48.000000  # System clock frequency in Hz
 
 # ------------------------------------------------------------
 # Testbench sources (ALL .v in tb/)

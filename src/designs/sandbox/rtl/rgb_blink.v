@@ -1,13 +1,11 @@
 module rgb_blink #(
-    parameter integer CLK_HZ      = 12_000_000,
-    parameter integer WIDTH       = 27,
-    parameter integer NTAPS       = 6,
-
-    parameter integer R_PERIOD_MS = 1000,
-    parameter integer G_PERIOD_MS = 700,
-    parameter integer B_PERIOD_MS = 300,
-
-    parameter integer MAX_DIV     = 255
+    parameter integer CLK_HZ,
+    parameter integer R_PERIOD_MS,
+    parameter integer G_PERIOD_MS,
+    parameter integer B_PERIOD_MS,
+    parameter integer NTAPS,
+    parameter integer WIDTH,
+    parameter integer MAX_DIV
 )(
     input  wire             clk,
     input  wire             reset_n,
@@ -24,38 +22,41 @@ module rgb_blink #(
 
     periodic_tick #(
         .CLK_HZ(CLK_HZ),
+        .PERIOD_MS(R_PERIOD_MS),
         .WIDTH(WIDTH),
         .NTAPS(NTAPS),
-        .PERIOD_MS(R_PERIOD_MS),
         .MAX_DIV(MAX_DIV)
     ) u_tick_r (
-        .clk(clk),
-        .taps(taps),
-        .tick(r_tick)
+        .clk        (clk),
+        .reset_n    (reset_n),
+        .taps       (taps),
+        .tick       (r_tick)
     );
 
     periodic_tick #(
         .CLK_HZ(CLK_HZ),
+        .PERIOD_MS(G_PERIOD_MS),
         .WIDTH(WIDTH),
         .NTAPS(NTAPS),
-        .PERIOD_MS(G_PERIOD_MS),
         .MAX_DIV(MAX_DIV)
     ) u_tick_g (
-        .clk(clk),
-        .taps(taps),
-        .tick(g_tick)
+        .clk        (clk),
+        .reset_n    (reset_n),
+        .taps       (taps),
+        .tick       (g_tick)
     );
 
     periodic_tick #(
         .CLK_HZ(CLK_HZ),
+        .PERIOD_MS(B_PERIOD_MS),
         .WIDTH(WIDTH),
         .NTAPS(NTAPS),
-        .PERIOD_MS(B_PERIOD_MS),
         .MAX_DIV(MAX_DIV)
     ) u_tick_b (
-        .clk(clk),
-        .taps(taps),
-        .tick(b_tick)
+        .clk        (clk),
+        .reset_n    (reset_n),
+        .taps       (taps),
+        .tick       (b_tick)
     );
 
     reg r_tick_d, g_tick_d, b_tick_d;

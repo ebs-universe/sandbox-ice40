@@ -1,52 +1,122 @@
 module periodic_tick #(
-    parameter integer CLK_HZ    = 12_000_000,
-    parameter integer WIDTH     = 27,
-    parameter integer NTAPS     = 6,
-    parameter integer PERIOD_MS = 1000,
-    parameter integer MAX_DIV   = 255
+    parameter integer CLK_HZ,
+    parameter integer PERIOD_MS,
+    parameter integer NTAPS,
+    parameter integer WIDTH,
+    parameter integer MAX_DIV
 )(
     input  wire             clk,
-    input  wire [NTAPS-1:0] taps,
-    output wire             tick
+    input  wire             reset_n,
+    input  wire [NTAPS-1:0] taps,  
+    output wire             tick     // 1-cycle pulse
 );
 
-    function integer tap_bit;
+    // Helper functions
+    function automatic longint abs64;
+        input longint x;
+        begin
+            abs64 = (x < 0) ? -x : x;
+        end
+    endfunction
+
+    // Tap-bit function (must match timebase)
+    function automatic integer tap_bit;
         input integer i;
         begin
             tap_bit = (i * (WIDTH-1)) / (NTAPS-1);
         end
     endfunction
 
-    function integer select_tap;
-        input integer period_ms;
-        integer i, hz, div;
+    // Select TAP and DIV (bounded, deterministic)
+    function automatic integer select_tap;
+        integer i;
+        longint best_err;
+        longint err;
+        longint tap_period_ns;
+        longint ideal_div;
+        longint actual_ms;
         begin
+            best_err   = 64'h7FFF_FFFF_FFFF_FFFF;
             select_tap = 0;
-            for (i = NTAPS-1; i >= 0; i = i - 1) begin
-                hz  = CLK_HZ >> (tap_bit(i) + 1);
-                div = (hz * period_ms) / 1000;
-                if (div > 0 && div <= MAX_DIV)
+
+            for (i = 0; i < NTAPS; i = i + 1) begin
+                // tap period in nanoseconds
+                tap_period_ns =
+                    (64'd1 << (tap_bit(i) + 1)) * 64'd1_000_000_000 / CLK_HZ;
+
+                // ideal divider (rounded)
+                ideal_div = (PERIOD_MS * 1_000_000 + tap_period_ns/2) / tap_period_ns;
+
+                if (ideal_div < 1)
+                    ideal_div = 1;
+                if (ideal_div > MAX_DIV)
+                    ideal_div = MAX_DIV;
+
+                actual_ms = (ideal_div * tap_period_ns) / 1_000_000;
+                err = abs64(actual_ms - PERIOD_MS);
+
+                if (err < best_err) begin
+                    best_err   = err;
                     select_tap = i;
+                end
             end
         end
     endfunction
 
-    localparam integer TAP = select_tap(PERIOD_MS);
-    localparam integer DIV =
-        ((CLK_HZ >> (tap_bit(TAP)+1)) * PERIOD_MS) / 1000;
+    function automatic integer select_div;
+        input integer tap;
+        longint tap_period_ns;
+        longint ideal_div;
+        begin
+            tap_period_ns =
+                (64'd1 << (tap_bit(tap) + 1)) * 64'd1_000_000_000 / CLK_HZ;
 
-    reg [$clog2(DIV)-1:0] div_cnt = 0;
-    reg tap_en;
+            ideal_div = (PERIOD_MS * 1_000_000 + tap_period_ns/2) / tap_period_ns;
 
-    always @(posedge clk)
-        tap_en <= taps[TAP];
+            if (ideal_div < 1)
+                select_div = 1;
+            else if (ideal_div > MAX_DIV)
+                select_div = MAX_DIV;
+            else
+                select_div = ideal_div;
+        end
+    endfunction
 
-    assign tick = tap_en && (div_cnt == DIV-1);
+    // ------------------------------------------------------------
+    // Elaboration-time constants
+    // ------------------------------------------------------------
+    localparam integer TAP = select_tap();
+    localparam integer DIV = select_div(TAP);
+
+    // ------------------------------------------------------------
+    // Rising-edge detection on selected tap
+    // ------------------------------------------------------------
+    reg tap_d;
 
     always @(posedge clk) begin
-        div_cnt <= tap_en
-            ? (div_cnt == DIV-1 ? 0 : div_cnt + 1)
-            : div_cnt;
+        if (!reset_n)
+            tap_d <= 1'b0;
+        else
+            tap_d <= taps[TAP];
     end
+
+    wire tap_rise = taps[TAP] && !tap_d;
+
+    // ------------------------------------------------------------
+    // Divider (counts tap periods)
+    // ------------------------------------------------------------
+    reg [$clog2(DIV)-1:0] div_cnt;
+
+    always @(posedge clk) begin
+        if (!reset_n)
+            div_cnt <= 0;
+        else if (tap_rise)
+            div_cnt <= (div_cnt == DIV-1) ? 0 : div_cnt + 1'b1;
+    end
+
+    // ------------------------------------------------------------
+    // Single-cycle output pulse
+    // ------------------------------------------------------------
+    assign tick = tap_rise && (div_cnt == DIV-1);
 
 endmodule

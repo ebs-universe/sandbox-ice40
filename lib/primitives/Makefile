@@ -8,7 +8,8 @@ LIB_RTL  := \
 	$(THIS_DIR)/rtl/reg8.v \
 	$(THIS_DIR)/rtl/adder8.v \
 	$(THIS_DIR)/rtl/clkdiv.v \
-	$(THIS_DIR)/rtl/sync1.v
+	$(THIS_DIR)/rtl/sync1.v \
+	$(THIS_DIR)/rtl/shift8.v
 
 VERILOG_FILES += $(LIB_RTL)
 endif

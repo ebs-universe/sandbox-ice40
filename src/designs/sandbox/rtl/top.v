@@ -1,7 +1,9 @@
 module top #(
-    parameter integer CLK_HZ     = 12_000_000,
-    parameter integer CLK_SYS_HZ = 25_000_000,
-    parameter integer NTAPS  = 6
+    parameter integer CLK_HZ        = 12_000_000,
+    parameter integer CLK_SYS_HZ    = 48_000_000,
+    parameter integer NTAPS         = 6,
+    parameter integer WIDTH         = 27,
+    parameter integer MAX_DIV       = 255
 )(
     input  CLK,
 
@@ -14,7 +16,7 @@ module top #(
     input  DIP_S1,
 
     // ------------------------------------------------------------
-    // 8 discrete LEDs (counter display)
+    // 8 discrete LEDs
     // ------------------------------------------------------------
     output LED_L1,
     output LED_L2,
@@ -38,8 +40,12 @@ module top #(
     // ============================================================
     wire clk_sys;
     wire pll_lock;
-
-    pll u_pll (
+        
+    pll #(
+        .DIVR (0),
+        .DIVF (63),
+        .DIVQ (4)
+    ) u_pll (
         .clk_in   (CLK),
         .clk_out  (clk_sys),
         .pll_lock (pll_lock)
@@ -92,8 +98,10 @@ module top #(
 
     stepped_counter #(
         .CLK_HZ(CLK_SYS_HZ),
+        .PERIOD_MS(1000),
         .NTAPS(NTAPS),
-        .PERIOD_MS(1000)
+        .WIDTH(WIDTH),
+        .MAX_DIV(MAX_DIV)
     ) ctr8 (
         .clk        (clk_sys),
         .reset_n    (sys_reset_n),
@@ -103,10 +111,29 @@ module top #(
     );
 
     // ============================================================
-    // Display counter on 8 LEDs
+    // 8-bit stepper loop (updates every ~1 second)
+    // ============================================================
+    wire [7:0] loop;
+
+    stepped_loop #(
+        .CLK_HZ(CLK_SYS_HZ),
+        .PERIOD_MS(1000),
+        .NTAPS(NTAPS),
+        .WIDTH(WIDTH),
+        .MAX_DIV(MAX_DIV)
+    ) loop8 (
+        .clk        (clk_sys),
+        .reset_n    (sys_reset_n),
+        .taps       (taps),
+        .step       (step),
+        .data       (loop)
+    );
+    
+    // ============================================================
+    // Display loop on 8 LEDs
     // ============================================================
     pmod_led8 u_leds (
-        .val    (ctr),
+        .val    (loop),
         .LED_L1 (LED_L1),
         .LED_L2 (LED_L2),
         .LED_L3 (LED_L3),
@@ -116,7 +143,7 @@ module top #(
         .LED_L7 (LED_L7),
         .LED_L8 (LED_L8)
     );
-
+    
     // ============================================================
     // RGB blink logic
     // ============================================================
@@ -124,10 +151,12 @@ module top #(
 
     rgb_blink #(
         .CLK_HZ(CLK_SYS_HZ),
-        .NTAPS(NTAPS),
         .R_PERIOD_MS(1000),
         .G_PERIOD_MS(700),
-        .B_PERIOD_MS(300)
+        .B_PERIOD_MS(300),
+        .NTAPS(NTAPS),
+        .WIDTH(WIDTH),
+        .MAX_DIV(MAX_DIV)
     ) u_rgb_blink (
         .clk        (clk_sys),
         .reset_n    (sys_reset_n),

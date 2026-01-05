@@ -1,5 +1,5 @@
 module timebase #(
-    parameter integer NTAPS = 6
+    parameter integer NTAPS
 )(
     input  clk,
     input reset_n,
@@ -10,8 +10,6 @@ module timebase #(
     reg [11:0] lo;
     reg lo_carry_d;
     reg [14:0] hi;
-    reg [NTAPS-1:0] prev;
-    reg [NTAPS-1:0] edge;
 
     integer k;
 
@@ -36,8 +34,6 @@ module timebase #(
             hi          <= 15'h0000;
             ticks       <= 27'h0000000;
             taps        <= {NTAPS{1'b0}};
-            prev        <= {NTAPS{1'b0}};
-            edge        <= {NTAPS{1'b0}};
         end else begin
             // --------------------------------------------------------
             // Stage 0: increment low half every cycle
@@ -55,19 +51,16 @@ module timebase #(
             hi <= hi + lo_carry_d;
 
             // --------------------------------------------------------
-            // Stage 3: sample tap bits & edge detect
-            // Uses the REGISTERED tick value
+            // Stage 3: publish taps as levels
             // --------------------------------------------------------
             for (k = 0; k < NTAPS; k = k + 1) begin
-                edge[k] <= ticks[tap_bit(k)] ^ prev[k];
-                prev[k] <= ticks[tap_bit(k)];
+                taps[k] <= ticks[tap_bit(k)];
             end
 
             // --------------------------------------------------------
             // Stage 4: publish outputs
             // --------------------------------------------------------
             ticks <= {hi, lo};
-            taps  <= edge; 
         end
     end
 

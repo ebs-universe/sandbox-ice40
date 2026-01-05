@@ -8,7 +8,8 @@ LIB_RTL  := \
 	$(THIS_DIR)/rtl/timebase.v \
 	$(THIS_DIR)/rtl/periodic.v \
 	$(THIS_DIR)/rtl/pll.v \
-	$(THIS_DIR)/rtl/reset.v
+	$(THIS_DIR)/rtl/reset.v \
+	$(THIS_DIR)/rtl/prescaler.v
 
 VERILOG_FILES += $(LIB_RTL)
 endif

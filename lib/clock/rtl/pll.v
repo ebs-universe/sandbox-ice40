@@ -1,8 +1,8 @@
 module pll #(
-    // Default values should work for 12 MHz -> 25 MHz
-    parameter integer DIVR          = 0,
-    parameter integer DIVF          = 24,
-    parameter integer DIVQ          = 3,
+    // f_out = f_in * (DIVF + 1) / (DIVR + 1) / 2^DIVQ
+    parameter integer DIVR,
+    parameter integer DIVF,
+    parameter integer DIVQ,
     parameter integer FILTER_RANGE  = 1
 )(
     input  wire clk_in,     // raw clock pin

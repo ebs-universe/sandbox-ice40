@@ -1,9 +1,9 @@
 module stepped_counter #(
-    parameter integer CLK_HZ      = 12_000_000,
-    parameter integer WIDTH       = 27,
-    parameter integer NTAPS       = 6,
-    parameter integer PERIOD_MS   = 1000,
-    parameter integer MAX_DIV     = 255
+    parameter integer CLK_HZ,
+    parameter integer PERIOD_MS,    
+    parameter integer NTAPS,
+    parameter integer WIDTH,
+    parameter integer MAX_DIV
 )(
     input              clk,
     input              reset_n,
@@ -16,14 +16,15 @@ module stepped_counter #(
 
     periodic_tick #(
         .CLK_HZ(CLK_HZ),
+        .PERIOD_MS(PERIOD_MS),
         .WIDTH(WIDTH),
         .NTAPS(NTAPS),
-        .PERIOD_MS(PERIOD_MS),
         .MAX_DIV(MAX_DIV)
     ) u_timer (
-        .clk(clk),
-        .taps(taps),
-        .tick(tick)
+        .clk        (clk),
+        .reset_n    (reset_n),
+        .taps       (taps),
+        .tick       (tick)
     );
 
     // ---------------------------------------------
