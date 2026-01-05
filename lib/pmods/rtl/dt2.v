@@ -1,11 +1,24 @@
-module pmod_dt2 (
+module pmod_dt2 #(
+    // Dual-mode control
+    parameter bit USE_EXTERNAL_TICK = 0,
+
+    // Internal refresh configuration (used only if internal)
+    parameter integer CLK_HZ,
+    parameter integer PERIOD_MS = 1,
+    parameter integer NTAPS,
+    parameter integer WIDTH,
+    parameter integer MAX_DIV
+)(
     input  wire        clk,
-    input  wire        reset_n,        // now used synchronously
+    input  wire        reset_n,
+
+    // timebase taps (only required if internal tick is used)
+    input  wire [NTAPS-1:0] taps,
 
     // display value
     input  wire [7:0]  val,
 
-    // refresh tick (1-cycle pulse)
+    // external refresh tick (1-cycle pulse, synchronous to clk)
     input  wire        refresh_tick,
 
     // PMOD DT2 pins
@@ -19,34 +32,63 @@ module pmod_dt2 (
     output wire DT2_SEL
 );
 
-    // ------------------------------------------------------------
+    // ============================================================
+    // Refresh tick selection
+    // ============================================================
+
+    wire tick_int;
+    wire tick;
+
+    generate
+        if (USE_EXTERNAL_TICK) begin : g_ext_tick
+            assign tick = refresh_tick;
+        end else begin : g_int_tick
+
+            periodic_tick #(
+                .CLK_HZ    (CLK_HZ),
+                .PERIOD_MS (PERIOD_MS),
+                .NTAPS     (NTAPS),
+                .WIDTH     (WIDTH),
+                .MAX_DIV   (MAX_DIV)
+            ) u_refresh (
+                .clk     (clk),
+                .reset_n (reset_n),
+                .taps    (taps),
+                .tick    (tick_int)
+            );
+
+            assign tick = tick_int;
+        end
+    endgenerate
+
+    // ============================================================
     // Digit select (toggles on refresh tick)
-    // ------------------------------------------------------------
+    // ============================================================
 
     reg digit_sel;
 
     always @(posedge clk) begin
         if (!reset_n)
             digit_sel <= 1'b0;
-        else if (refresh_tick)
+        else if (tick)
             digit_sel <= ~digit_sel;
     end
 
-    // Physical digit select (matches hardware polarity)
+    // Physical digit select (matches DT2 polarity)
     wire phys_sel = ~digit_sel;
     assign DT2_SEL = phys_sel;
 
-    // ------------------------------------------------------------
-    // Nibble select (purely combinational)
-    // ------------------------------------------------------------
+    // ============================================================
+    // Nibble select (pure combinational)
+    // ============================================================
 
     wire [3:0] nibble =
         phys_sel ? val[3:0] : val[7:4];
 
-    // ------------------------------------------------------------
-    // Hex → 7-segment decode (active-LOW)
+    // ============================================================
+    // Hex → 7-segment decode (active LOW)
     // seg = {g,f,e,d,c,b,a}
-    // ------------------------------------------------------------
+    // ============================================================
 
     reg [6:0] seg;
 
@@ -72,9 +114,9 @@ module pmod_dt2 (
         endcase
     end
 
-    // ------------------------------------------------------------
-    // Segment pin mapping (matches constraints)
-    // ------------------------------------------------------------
+    // ============================================================
+    // Segment pin mapping
+    // ============================================================
 
     assign {
         DT2_G,
