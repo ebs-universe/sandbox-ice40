@@ -19,7 +19,8 @@ PCF_FILES := \
 
 PMOD_BINDINGS := \
 	1:btn44 \
-	2:led8
+	2:led8 \
+	3:dt2
 
 # PMOD support
 # Constraints only : adds generated PCFs to PCF_FILES

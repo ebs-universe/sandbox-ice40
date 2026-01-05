@@ -1,0 +1,9 @@
+# SiPeed PMOD DT2 (2x7seg) on PMODx (PMOD T1A)
+set_io  DT2_G   Px_1
+set_io  DT2_D   Px_2
+set_io  DT2_A   Px_3
+set_io  DT2_SEL Px_4
+set_io  DT2_F   Px_7 
+set_io  DT2_E   Px_8
+set_io  DT2_B   Px_9
+set_io  DT2_C   Px_10

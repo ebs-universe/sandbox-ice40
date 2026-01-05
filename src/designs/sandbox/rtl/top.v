@@ -28,6 +28,18 @@ module top #(
     output LED_L8,
 
     // ------------------------------------------------------------
+    // 7 segment display (PMOD DT2)
+    // ------------------------------------------------------------
+    output DT2_A,
+    output DT2_B,
+    output DT2_C,
+    output DT2_D,
+    output DT2_E,
+    output DT2_F,
+    output DT2_G,
+    output DT2_SEL,
+
+    // ------------------------------------------------------------
     // RGB LED
     // ------------------------------------------------------------
     output LED_R,
@@ -108,6 +120,40 @@ module top #(
         .taps       (taps),
         .step       (step),
         .ctr        (ctr)
+    );
+
+    // ============================================================
+    // Counter display on 7seg DT2
+    // ============================================================
+    wire refresh_tick;
+
+    periodic_tick #(
+        .CLK_HZ    (CLK_SYS_HZ),
+        .PERIOD_MS (1),
+        .NTAPS     (NTAPS),
+        .WIDTH     (WIDTH),
+        .MAX_DIV   (MAX_DIV)
+    ) u_dt2_refresh (
+        .clk     (clk_sys),
+        .reset_n (sys_reset_n),
+        .taps    (taps),
+        .tick    (refresh_tick)
+    );
+
+    pmod_dt2 u_dt2 (
+        .clk          (clk_sys),
+        .reset_n      (sys_reset_n),
+        .val          (ctr),
+        .refresh_tick (refresh_tick),
+
+        .DT2_A        (DT2_A),
+        .DT2_B        (DT2_B),
+        .DT2_C        (DT2_C),
+        .DT2_D        (DT2_D),
+        .DT2_E        (DT2_E),
+        .DT2_F        (DT2_F),
+        .DT2_G        (DT2_G),
+        .DT2_SEL      (DT2_SEL)
     );
 
     // ============================================================

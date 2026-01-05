@@ -1,4 +1,4 @@
-# SiPeed PMOD BTN4+4 on PMOD1 (PMOD T1A)
+# SiPeed PMOD BTN4+4 on PMODx (PMOD T1A)
 # K: Pushbutton MC, S: DIP Switch
 set_io  DIP_S4  Px_1   -pullup
 set_io  DIP_S3  Px_2   -pullup

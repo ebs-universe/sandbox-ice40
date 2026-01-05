@@ -13,10 +13,9 @@ module stepped_loop #(
 );
 
     // ------------------------------------------------------------
-    // Periodic tick (locally registered)
+    // Periodic tick
     // ------------------------------------------------------------
-    wire tick_raw;
-    reg  tick;
+    wire tick;
 
     periodic_tick #(
         .CLK_HZ    (CLK_HZ),
@@ -28,46 +27,32 @@ module stepped_loop #(
         .clk     (clk),
         .reset_n (reset_n),
         .taps    (taps),
-        .tick    (tick_raw)
+        .tick    (tick)
     );
 
-    always @(posedge clk) begin
-        if (!reset_n)
-            tick <= 1'b0;
-        else
-            tick <= tick_raw;
-    end
-
     // ------------------------------------------------------------
-    // Step control (registered enable)
+    // Step control
     // ------------------------------------------------------------
     reg [3:0] steps_left;
-    reg       shift_en;
 
     always @(posedge clk) begin
         if (!reset_n) begin
             steps_left <= 4'd0;
-            shift_en   <= 1'b0;
         end else begin
-            // Idle → wait for tick
-            if (steps_left == 0) begin
-                shift_en <= 1'b0;
-                if (tick && step != 0) begin
-                    steps_left <= step;
-                    shift_en   <= 1'b1;
-                end
+            // Load on tick
+            if (tick && steps_left == 0 && step != 0) begin
+                steps_left <= step;
             end
-            // Active → shift
-            else begin
+            // Count down while active
+            else if (steps_left != 0) begin
                 steps_left <= steps_left - 4'd1;
-                shift_en   <= (steps_left != 4'd1);
             end
         end
     end
 
-    // ------------------------------------------------------------
-    // Shift register (unchanged interface)
-    // ------------------------------------------------------------
+    // Enable is simply "we are active"
+    wire shift_en = (steps_left != 0);
+
     shift8 #(
         .INITIAL(8'h01)
     ) u_shift (
