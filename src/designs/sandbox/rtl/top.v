@@ -77,7 +77,7 @@ module top #(
     // ============================================================
     wire [3:0] step;
 
-    dip4 u_dip (
+    pmod_dip4 u_dip (
         .DIP_S4(DIP_S4),
         .DIP_S3(DIP_S3),
         .DIP_S2(DIP_S2),
@@ -105,7 +105,7 @@ module top #(
     // ============================================================
     // Display counter on 8 LEDs
     // ============================================================
-    led8 u_leds (
+    pmod_led8 u_leds (
         .val    (ctr),
         .LED_L1 (LED_L1),
         .LED_L2 (LED_L2),

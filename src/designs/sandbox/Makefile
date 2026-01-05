@@ -1,6 +1,7 @@
 THIS_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 PROJECT_NAME := sandbox
+BOARD_NAME   := icesugar
 TOP_MODULE   := top
 
 VERILOG_FILES := \
@@ -9,13 +10,19 @@ VERILOG_FILES := \
 	$(THIS_DIR)/rtl/rgb_blink.v \
 	$(THIS_DIR)/rtl/counter.v
 
-PCF_FILES := \
-	$(PROJECT_ROOT)/boards/icesugar/constraints/base.pcf \
-	$(THIS_DIR)/constraints/pmod_buttons.pcf \
-	$(THIS_DIR)/constraints/pmod_leds.pcf
-
 VERILOG_INCLUDES :=
 VERILOG_PACKAGES :=
+
+PCF_FILES := \
+	$(PROJECT_ROOT)/boards/$(BOARD_NAME)/constraints/base.pcf
+
+PMOD_BINDINGS := \
+	1:btn44 \
+	2:led8
+
+# PMOD support
+# Constraints only : adds generated PCFs to PCF_FILES
+include $(PROJECT_ROOT)/mk/pmods.mk
 
 SYS_CLK_MHZ := 25.000000  # System clock frequency in Hz
 

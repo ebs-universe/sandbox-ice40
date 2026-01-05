@@ -3,6 +3,13 @@
 # ------------------------------------------------------------
 PROJECT_ROOT := $(abspath $(dir $(firstword $(MAKEFILE_LIST))))
 
+
+# ============================================================
+# Common Build Path (Available to design Makefile)
+# ============================================================
+
+COMMON_BUILD_PATH := $(PROJECT_ROOT)/build
+
 # ============================================================
 # Board selection
 # ============================================================
@@ -24,7 +31,7 @@ include $(PROJECT_ROOT)/src/Makefile
 # Build paths
 # ============================================================
 
-BUILD_PATH := $(PROJECT_ROOT)/build/$(PROJECT_NAME)
+BUILD_PATH := $(COMMON_BUILD_PATH)/$(PROJECT_NAME)
 
 JSON_RAW := $(BUILD_PATH)/$(PROJECT_NAME).raw.json
 JSON     := $(BUILD_PATH)/$(PROJECT_NAME).json

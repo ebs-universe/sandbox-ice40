@@ -1,4 +1,4 @@
-module dip4 (
+module pmod_dip4 (
     input DIP_S4,
     input DIP_S3,
     input DIP_S2,

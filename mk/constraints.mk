@@ -3,8 +3,9 @@
 #
 # Constraint (PCF) sanity checks
 # ============================================================
+.PHONY : check-pcf
 
-check-pcf:
+check-pcf: | $(PCF_FILES)
 ifndef PCF_FILES
 	$(error PCF_FILES is not defined)
 endif

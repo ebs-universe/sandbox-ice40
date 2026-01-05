@@ -1,4 +1,4 @@
-module led8 (
+module pmod_led8 (
     input  [7:0] val,
     output LED_L1,
     output LED_L2,
