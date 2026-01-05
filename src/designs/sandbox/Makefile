@@ -6,7 +6,6 @@ TOP_MODULE   := top
 
 VERILOG_FILES := \
 	$(THIS_DIR)/rtl/top.v \
-	$(THIS_DIR)/rtl/rgb_led.v \
 	$(THIS_DIR)/rtl/rgb_blink.v \
 	$(THIS_DIR)/rtl/counter.v \
 	$(THIS_DIR)/rtl/loop.v
@@ -38,5 +37,6 @@ TB_VERILOG_FILES := \
 # include $(PROJECT_ROOT)/lib/logic/Makefile
 include $(PROJECT_ROOT)/lib/primitives/Makefile
 include $(PROJECT_ROOT)/lib/clock/Makefile
+include $(PROJECT_ROOT)/lib/ice40/Makefile
 include $(PROJECT_ROOT)/lib/pmods/Makefile
 
