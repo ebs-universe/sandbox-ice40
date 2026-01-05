@@ -181,7 +181,7 @@ module top #(
     );
 
     pmod_dt2 #(
-        .USE_EXTERNAL_TICK  (1),
+        .USE_EXTERNAL_TICK  (0),
         .CLK_HZ    (CLK_SYS_HZ),
         .PERIOD_MS (1),
         .NTAPS     (NTAPS),
@@ -192,7 +192,7 @@ module top #(
         .reset_n      (sys_reset_n),
         .taps         (taps),
         .val          (ctr),
-        .refresh_tick (refresh_tick),
+        .refresh_tick (),
 
         .DT2_A        (DT2_A),
         .DT2_B        (DT2_B),
