@@ -146,3 +146,7 @@ include $(PROJECT_ROOT)/mk/help.mk
 .PHONY: clean
 clean:
 	rm -rf $(PROJECT_ROOT)/build
+
+
+.PHONY: all
+all: build timing analysis pinout rtlview

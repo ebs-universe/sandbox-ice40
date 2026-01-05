@@ -93,14 +93,15 @@ module top #(
     // ============================================================
     // DIP switches → 4-bit step
     // ============================================================
-    wire [3:0] step;
+    reg [3:0] step;
 
     pmod_dip4 u_dip (
-        .DIP_S4(DIP_S4),
-        .DIP_S3(DIP_S3),
-        .DIP_S2(DIP_S2),
-        .DIP_S1(DIP_S1),
-        .val   (step)
+        .clk        (clk_sys),
+        .DIP_S4     (DIP_S4),
+        .DIP_S3     (DIP_S3),
+        .DIP_S2     (DIP_S2),
+        .DIP_S1     (DIP_S1),
+        .val        (step)
     );
 
     // ============================================================
