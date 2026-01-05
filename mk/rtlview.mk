@@ -134,13 +134,20 @@ rtlview-hier-svg: $(HIER_DOT)
 
 	@echo "Normalizing module filenames..."
 	@for f in $(HIER_DOT_DIR)/*.dot; do \
-		case "$$f" in \
-			*'&#9586;'*) \
-				new=$$(echo "$$f" | sed 's|^.*/[^/]*&#9586;|$(HIER_DOT_DIR)/|'); \
+		base=$$(basename "$$f" .dot); \
+		mod=$$(printf "%s\n" "$$base" \
+			| sed 's/&#9586;/\n/g' \
+			| grep -v '^$$' \
+			| grep -v '^\$paramod' \
+			| grep -v '=' \
+			| tail -n 1); \
+		if [ -n "$$mod" ]; then \
+			new="$(HIER_DOT_DIR)/$$mod.dot"; \
+			if [ "$$f" != "$$new" ]; then \
 				echo "  $$f → $$new"; \
 				mv "$$f" "$$new"; \
-			;; \
-		esac; \
+			fi; \
+		fi; \
 	done
 
 	@echo "Rendering hierarchical SVGs..."
