@@ -21,18 +21,18 @@ The architecture enforces a unidirectional flow:
 
 #### Clock domain (example)
 
-┌──────────────────────────────────────────┐
-│                clk                       │
-│                                          │
-│  ┌───────────┐      ┌───────────────┐    │
-│  │ timebase  │─────▶│ periodic_tick │───▶ event
-│  │           │ taps │               │    │
-│  └───────────┘      └───────────────┘    │
-│          │                               │
-│          └──────────▶ ticks              │
-│                                          │
-│              application logic           │
-└──────────────────────────────────────────┘
+    ┌──────────────────────────────────────────┐
+    │                clk                       │
+    │                                          │
+    │  ┌───────────┐      ┌───────────────┐    │
+    │  │ timebase  │─────▶│ periodic_tick │───▶ event
+    │  │           │ taps │               │    │ 
+    │  └───────────┘      └───────────────┘    │
+    │          │                               │
+    │          └──────────▶ ticks              │
+    │                                          │
+    │              application logic           │
+    └──────────────────────────────────────────┘
 
 **Architectural invariant:**  
 Time (`ticks`, `taps`) never drives behavior directly.  
