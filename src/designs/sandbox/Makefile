@@ -14,7 +14,8 @@ VERILOG_INCLUDES :=
 VERILOG_PACKAGES :=
 
 PCF_FILES := \
-	$(PROJECT_ROOT)/boards/$(BOARD_NAME)/constraints/base.pcf \
+	$(PROJECT_ROOT)/boards/$(BOARD_NAME)/constraints/clock.pcf \
+	$(PROJECT_ROOT)/boards/$(BOARD_NAME)/constraints/rgb.pcf \
 	$(PROJECT_ROOT)/boards/$(BOARD_NAME)/constraints/uart.pcf
 
 PMOD_BINDINGS := \

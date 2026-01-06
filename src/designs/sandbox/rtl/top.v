@@ -137,39 +137,39 @@ module top #(
     // Dev
     // ============================================================
     
-    // ------------------------------------------------------------
-    // Simple data source: incrementing counter
-    // ------------------------------------------------------------
-    reg [7:0] tx_data;
-    reg       tx_valid;
+    // // ------------------------------------------------------------
+    // // Simple data source: incrementing counter
+    // // ------------------------------------------------------------
+    // reg [7:0] tx_data;
+    // reg       tx_valid;
 
-    wire tx_ready;
+    // wire tx_ready;
 
-    always @(posedge clk_sys) begin
-        if (!sys_reset_n) begin
-            tx_data  <= 8'h55;
-            tx_valid <= 1'b0;
-        end else begin
-            if (tx_ready) begin
-                tx_data  <= tx_data + 1'b1;
-                tx_valid <= 1'b1;
-            end else begin
-                tx_valid <= 1'b0;
-            end
-        end
-    end
+    // always @(posedge clk_sys) begin
+    //     if (!sys_reset_n) begin
+    //         tx_data  <= 8'h55;
+    //         tx_valid <= 1'b0;
+    //     end else begin
+    //         if (tx_ready) begin
+    //             tx_data  <= tx_data + 1'b1;
+    //             tx_valid <= 1'b1;
+    //         end else begin
+    //             tx_valid <= 1'b0;
+    //         end
+    //     end
+    // end
 
-    uart_tx #(
-        .CLK_HZ (48_000_000),
-        .BAUD   (1_000_000)
-    ) u_uart (
-        .clk     (clk_sys),
-        .reset_n (sys_reset_n),
-        .data    (tx_data),
-        .valid   (tx_valid),
-        .ready   (tx_ready),
-        .tx      (UART_TX)
-    );
+    // uart_tx #(
+    //     .CLK_HZ (48_000_000),
+    //     .BAUD   (1_000_000)
+    // ) u_uart (
+    //     .clk     (clk_sys),
+    //     .reset_n (sys_reset_n),
+    //     .data    (tx_data),
+    //     .valid   (tx_valid),
+    //     .ready   (tx_ready),
+    //     .tx      (UART_TX)
+    // );
 
 
     // ============================================================
