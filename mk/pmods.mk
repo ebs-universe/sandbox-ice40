@@ -17,7 +17,7 @@ PMOD_MODULES := $(foreach b,$(PMOD_BINDINGS),$(lastword  $(subst :, ,$(b))))
 
 # Generated PCF filenames
 PMOD_PCFS := $(foreach b,$(PMOD_BINDINGS), \
-	$(PMOD_BUILD_DIR)/pmod$(firstword $(subst :, ,$(b)))-$(lastword $(subst :, ,$(b))).pcf)
+	$(PMOD_BUILD_DIR)/$(BOARD_NAME)-pmod$(firstword $(subst :, ,$(b)))-$(lastword $(subst :, ,$(b))).pcf)
 
 # Add generated PCFs to the global constraint list
 PCF_FILES += $(PMOD_PCFS)
@@ -30,7 +30,7 @@ $(PMOD_BUILD_DIR):
 # Rule to generate a single PMOD PCF fragment
 # ------------------------------------------------------------
 
-$(PMOD_BUILD_DIR)/pmod%.pcf: | $(PMOD_BUILD_DIR)
+$(PMOD_BUILD_DIR)/$(BOARD_NAME)-pmod%.pcf: | $(PMOD_BUILD_DIR)
 	@stem=$*; \
 	slot=$${stem%%-*}; \
 	mod=$${stem#*-}; \
