@@ -12,10 +12,10 @@ module top #(
     // ------------------------------------------------------------
     // DIP switches (step value)
     // ------------------------------------------------------------
-    input  DIP_S4,
-    input  DIP_S3,
-    input  DIP_S2,
-    input  DIP_S1,
+    // input  DIP_S4,
+    // input  DIP_S3,
+    // input  DIP_S2,
+    // input  DIP_S1,
 
     // ------------------------------------------------------------
     // 8 discrete LEDs
@@ -46,7 +46,13 @@ module top #(
     // ------------------------------------------------------------
     output LED_R,
     output LED_G,
-    output LED_B
+    output LED_B,
+
+    // ------------------------------------------------------------
+    // UART
+    // ------------------------------------------------------------
+    output UART_TX,
+    input UART_RX
 );
 
     // ============================================================
@@ -128,18 +134,57 @@ module top #(
     );
 
     // ============================================================
+    // Dev
+    // ============================================================
+    
+    // ------------------------------------------------------------
+    // Simple data source: incrementing counter
+    // ------------------------------------------------------------
+    reg [7:0] tx_data;
+    reg       tx_valid;
+
+    wire tx_ready;
+
+    always @(posedge clk_sys) begin
+        if (!sys_reset_n) begin
+            tx_data  <= 8'h55;
+            tx_valid <= 1'b0;
+        end else begin
+            if (tx_ready) begin
+                tx_data  <= tx_data + 1'b1;
+                tx_valid <= 1'b1;
+            end else begin
+                tx_valid <= 1'b0;
+            end
+        end
+    end
+
+    uart_tx #(
+        .CLK_HZ (48_000_000),
+        .BAUD   (1_000_000)
+    ) u_uart (
+        .clk     (clk_sys),
+        .reset_n (sys_reset_n),
+        .data    (tx_data),
+        .valid   (tx_valid),
+        .ready   (tx_ready),
+        .tx      (UART_TX)
+    );
+
+
+    // ============================================================
     // Inputs
     // ============================================================
-    reg [3:0] step;
+    reg [3:0] step = 4'b0001;
 
-    pmod_dip4 u_dip (
-        .clk        (clk_sys),
-        .DIP_S4     (DIP_S4),
-        .DIP_S3     (DIP_S3),
-        .DIP_S2     (DIP_S2),
-        .DIP_S1     (DIP_S1),
-        .val        (step)
-    );
+    // pmod_dip4 u_dip (
+    //     .clk        (clk_sys),
+    //     .DIP_S4     (DIP_S4),
+    //     .DIP_S3     (DIP_S3),
+    //     .DIP_S2     (DIP_S2),
+    //     .DIP_S1     (DIP_S1),
+    //     .val        (step)
+    // );
 
     // ============================================================
     // Logic

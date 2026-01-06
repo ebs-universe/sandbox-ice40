@@ -14,10 +14,10 @@ VERILOG_INCLUDES :=
 VERILOG_PACKAGES :=
 
 PCF_FILES := \
-	$(PROJECT_ROOT)/boards/$(BOARD_NAME)/constraints/base.pcf
+	$(PROJECT_ROOT)/boards/$(BOARD_NAME)/constraints/base.pcf \
+	$(PROJECT_ROOT)/boards/$(BOARD_NAME)/constraints/uart.pcf
 
 PMOD_BINDINGS := \
-	1:btn44 \
 	2:led8 \
 	3:dt2
 
@@ -38,5 +38,5 @@ TB_VERILOG_FILES := \
 include $(PROJECT_ROOT)/lib/primitives/Makefile
 include $(PROJECT_ROOT)/lib/clock/Makefile
 include $(PROJECT_ROOT)/lib/ice40/Makefile
+include $(PROJECT_ROOT)/lib/uart/Makefile
 include $(PROJECT_ROOT)/lib/pmods/Makefile
-
