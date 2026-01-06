@@ -1,5 +1,7 @@
 module top #(
     parameter integer CLK_HZ        = 12_000_000,
+    parameter integer CLK_HFINT_HZ  = 24_000_000,
+    parameter integer CLK_LFINT_HZ  = 10_000,
     parameter integer CLK_SYS_HZ    = 48_000_000,
     parameter integer NTAPS         = 6,
     parameter integer WIDTH         = 27,
@@ -48,8 +50,9 @@ module top #(
 );
 
     // ============================================================
-    // PLL
+    // System
     // ============================================================
+    
     wire clk_sys;
     wire pll_lock;
         
@@ -62,10 +65,6 @@ module top #(
         .clk_out  (clk_sys),
         .pll_lock (pll_lock)
     );
-
-    // ============================================================
-    // System
-    // ============================================================
     
     wire sys_reset_n;
 
@@ -76,9 +75,9 @@ module top #(
         .reset_n     (sys_reset_n)
     );
 
-    wire [31:0] ticks;
+    wire [26:0] ticks;
     wire [(NTAPS-1):0]  taps;
-
+    
     timebase #(
         .NTAPS(NTAPS)
     ) u_timebase (
@@ -86,6 +85,46 @@ module top #(
         .reset_n (sys_reset_n),
         .ticks   (ticks),
         .taps    (taps)
+    );
+
+    // Secondary Clock Domain : HFINT
+    wire clk_hfint;
+    
+    hfosc #(
+        .DIV(1)       // 24 MHz
+    ) u_hfosc (
+        .clk_out(clk_hfint)
+    );
+
+    wire [26:0] hfint_ticks;
+    wire [(NTAPS-1):0]  hfint_taps;
+    
+    timebase #(
+        .NTAPS(NTAPS)
+    ) u_hfint_timebase (
+        .clk     (clk_hfint),
+        .reset_n (sys_reset_n),
+        .ticks   (hfint_ticks),
+        .taps    (hfint_taps)
+    );
+
+    // Tertiary Clock Domain : LFINT
+    wire clk_lfint;
+
+    lfosc u_lfosc (
+        .clk_out(clk_lfint)
+    );
+
+    wire [26:0] lfint_ticks;
+    wire [1:0]  lfint_taps;
+
+    timebase #(
+        .NTAPS(2)
+    ) u_lfint_timebase (
+        .clk     (clk_lfint),
+        .reset_n (sys_reset_n),
+        .ticks   (lfint_ticks),
+        .taps    (lfint_taps)
     );
 
     // ============================================================
@@ -109,7 +148,7 @@ module top #(
 
     stepped_counter #(
         .CLK_HZ(CLK_SYS_HZ),
-        .PERIOD_MS(1000),
+        .PERIOD_US(1_000_000),
         .NTAPS(NTAPS),
         .WIDTH(WIDTH),
         .MAX_DIV(MAX_DIV)
@@ -125,7 +164,7 @@ module top #(
 
     stepped_loop #(
         .CLK_HZ(CLK_SYS_HZ),
-        .PERIOD_MS(1000),
+        .PERIOD_US(1_000_000),
         .NTAPS(NTAPS),
         .WIDTH(WIDTH),
         .MAX_DIV(MAX_DIV)
@@ -141,9 +180,9 @@ module top #(
 
     rgb_blink #(
         .CLK_HZ(CLK_SYS_HZ),
-        .R_PERIOD_MS(1000),
-        .G_PERIOD_MS(700),
-        .B_PERIOD_MS(300),
+        .R_PERIOD_US(1_000_000),
+        .G_PERIOD_US(  700_000),
+        .B_PERIOD_US(  300_000),
         .NTAPS(NTAPS),
         .WIDTH(WIDTH),
         .MAX_DIV(MAX_DIV)
@@ -183,7 +222,7 @@ module top #(
     pmod_dt2 #(
         .USE_EXTERNAL_TICK  (0),
         .CLK_HZ    (CLK_SYS_HZ),
-        .PERIOD_MS (1),
+        .PERIOD_US (1_000),
         .NTAPS     (NTAPS),
         .WIDTH     (WIDTH),
         .MAX_DIV   (MAX_DIV)

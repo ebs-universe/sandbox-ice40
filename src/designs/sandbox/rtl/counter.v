@@ -1,6 +1,6 @@
 module stepped_counter #(
     parameter integer CLK_HZ,
-    parameter integer PERIOD_MS,    
+    parameter integer PERIOD_US,    
     parameter integer NTAPS,
     parameter integer WIDTH,
     parameter integer MAX_DIV
@@ -16,7 +16,7 @@ module stepped_counter #(
 
     periodic_tick #(
         .CLK_HZ(CLK_HZ),
-        .PERIOD_MS(PERIOD_MS),
+        .PERIOD_US(PERIOD_US),
         .WIDTH(WIDTH),
         .NTAPS(NTAPS),
         .MAX_DIV(MAX_DIV)

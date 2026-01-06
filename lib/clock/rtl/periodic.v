@@ -1,17 +1,19 @@
 module periodic_tick #(
     parameter integer CLK_HZ,
-    parameter integer PERIOD_MS,
+    parameter integer PERIOD_US,
     parameter integer NTAPS,
     parameter integer WIDTH,
     parameter integer MAX_DIV
 )(
     input  wire             clk,
     input  wire             reset_n,
-    input  wire [NTAPS-1:0] taps,  
+    input  wire [NTAPS-1:0] taps,
     output wire             tick     // 1-cycle pulse
 );
 
+    // ------------------------------------------------------------
     // Helper functions
+    // ------------------------------------------------------------
     function automatic longint abs64;
         input longint x;
         begin
@@ -19,7 +21,6 @@ module periodic_tick #(
         end
     endfunction
 
-    // Tap-bit function (must match timebase)
     function automatic integer tap_bit;
         input integer i;
         begin
@@ -27,33 +28,34 @@ module periodic_tick #(
         end
     endfunction
 
-    // Select TAP and DIV (bounded, deterministic)
+    // ------------------------------------------------------------
+    // Select TAP and DIV (tap-only, deterministic)
+    // ------------------------------------------------------------
     function automatic integer select_tap;
         integer i;
         longint best_err;
         longint err;
         longint tap_period_ns;
         longint ideal_div;
-        longint actual_ms;
+        longint actual_us;
         begin
             best_err   = 64'h7FFF_FFFF_FFFF_FFFF;
             select_tap = 0;
 
             for (i = 0; i < NTAPS; i = i + 1) begin
-                // tap period in nanoseconds
                 tap_period_ns =
                     (64'd1 << (tap_bit(i) + 1)) * 64'd1_000_000_000 / CLK_HZ;
 
-                // ideal divider (rounded)
-                ideal_div = (PERIOD_MS * 1_000_000 + tap_period_ns/2) / tap_period_ns;
+                ideal_div =
+                    (PERIOD_US * 1_000 + tap_period_ns/2) / tap_period_ns;
 
                 if (ideal_div < 1)
                     ideal_div = 1;
                 if (ideal_div > MAX_DIV)
                     ideal_div = MAX_DIV;
 
-                actual_ms = (ideal_div * tap_period_ns) / 1_000_000;
-                err = abs64(actual_ms - PERIOD_MS);
+                actual_us = (ideal_div * tap_period_ns) / 1_000;
+                err = abs64(actual_us - PERIOD_US);
 
                 if (err < best_err) begin
                     best_err   = err;
@@ -71,7 +73,8 @@ module periodic_tick #(
             tap_period_ns =
                 (64'd1 << (tap_bit(tap) + 1)) * 64'd1_000_000_000 / CLK_HZ;
 
-            ideal_div = (PERIOD_MS * 1_000_000 + tap_period_ns/2) / tap_period_ns;
+            ideal_div =
+                (PERIOD_US * 1_000 + tap_period_ns/2) / tap_period_ns;
 
             if (ideal_div < 1)
                 select_div = 1;
@@ -87,6 +90,11 @@ module periodic_tick #(
     // ------------------------------------------------------------
     localparam integer TAP = select_tap();
     localparam integer DIV = select_div(TAP);
+
+    // NOTE:
+    // Tap mode is mathematically valid up to ~480 kHz @ 48 MHz clock.
+    // Frequencies above ~100 kHz are allowed but not recommended due
+    // to increasing divider quantization error.
 
     // ------------------------------------------------------------
     // Rising-edge detection on selected tap

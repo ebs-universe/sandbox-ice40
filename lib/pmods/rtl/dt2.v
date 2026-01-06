@@ -4,7 +4,7 @@ module pmod_dt2 #(
 
     // Internal refresh configuration (used only if internal)
     parameter integer CLK_HZ,
-    parameter integer PERIOD_MS = 1,
+    parameter integer PERIOD_US = 1_000,
     parameter integer NTAPS,
     parameter integer WIDTH,
     parameter integer MAX_DIV
@@ -46,7 +46,7 @@ module pmod_dt2 #(
 
             periodic_tick #(
                 .CLK_HZ    (CLK_HZ),
-                .PERIOD_MS (PERIOD_MS),
+                .PERIOD_US (PERIOD_US),
                 .NTAPS     (NTAPS),
                 .WIDTH     (WIDTH),
                 .MAX_DIV   (MAX_DIV)

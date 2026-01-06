@@ -1,8 +1,8 @@
 module rgb_blink #(
     parameter integer CLK_HZ,
-    parameter integer R_PERIOD_MS,
-    parameter integer G_PERIOD_MS,
-    parameter integer B_PERIOD_MS,
+    parameter integer R_PERIOD_US,
+    parameter integer G_PERIOD_US,
+    parameter integer B_PERIOD_US,
     parameter integer NTAPS,
     parameter integer WIDTH,
     parameter integer MAX_DIV
@@ -22,7 +22,7 @@ module rgb_blink #(
 
     periodic_tick #(
         .CLK_HZ(CLK_HZ),
-        .PERIOD_MS(R_PERIOD_MS),
+        .PERIOD_US(R_PERIOD_US),
         .WIDTH(WIDTH),
         .NTAPS(NTAPS),
         .MAX_DIV(MAX_DIV)
@@ -35,7 +35,7 @@ module rgb_blink #(
 
     periodic_tick #(
         .CLK_HZ(CLK_HZ),
-        .PERIOD_MS(G_PERIOD_MS),
+        .PERIOD_US(G_PERIOD_US),
         .WIDTH(WIDTH),
         .NTAPS(NTAPS),
         .MAX_DIV(MAX_DIV)
@@ -48,7 +48,7 @@ module rgb_blink #(
 
     periodic_tick #(
         .CLK_HZ(CLK_HZ),
-        .PERIOD_MS(B_PERIOD_MS),
+        .PERIOD_US(B_PERIOD_US),
         .WIDTH(WIDTH),
         .NTAPS(NTAPS),
         .MAX_DIV(MAX_DIV)
