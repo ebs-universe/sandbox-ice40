@@ -6,9 +6,10 @@ TOP_MODULE   := top
 
 VERILOG_FILES := \
 	$(THIS_DIR)/rtl/top.v \
-	$(THIS_DIR)/rtl/rgb_blink.v \
 	$(THIS_DIR)/rtl/counter.v \
-	$(THIS_DIR)/rtl/loop.v
+	$(THIS_DIR)/rtl/loop.v \
+	$(THIS_DIR)/rtl/rgb_blink.v \
+	$(THIS_DIR)/rtl/rgb_fade.v
 
 VERILOG_INCLUDES :=
 VERILOG_PACKAGES :=
@@ -41,3 +42,5 @@ include $(PROJECT_ROOT)/lib/clock/Makefile
 include $(PROJECT_ROOT)/lib/ice40/Makefile
 include $(PROJECT_ROOT)/lib/uart/Makefile
 include $(PROJECT_ROOT)/lib/pmods/Makefile
+include $(PROJECT_ROOT)/lib/siggen/Makefile
+

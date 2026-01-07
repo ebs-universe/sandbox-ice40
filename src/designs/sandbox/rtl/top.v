@@ -223,21 +223,38 @@ module top #(
     
     wire r, g, b;
 
-    rgb_blink #(
-        .CLK_HZ(CLK_SYS_HZ),
-        .R_PERIOD_US(1_000_000),
-        .G_PERIOD_US(  700_000),
-        .B_PERIOD_US(  300_000),
-        .NTAPS(NTAPS),
-        .WIDTH(WIDTH),
-        .MAX_DIV(MAX_DIV)
-    ) u_rgb_blink (
-        .clk        (clk_sys),
-        .reset_n    (sys_reset_n),
-        .taps       (taps),
-        .r          (r),
-        .g          (g),
-        .b          (b)
+    // rgb_blink #(
+    //     .CLK_HZ(CLK_SYS_HZ),
+    //     .R_PERIOD_US(1_000_000),
+    //     .G_PERIOD_US(  700_000),
+    //     .B_PERIOD_US(  300_000),
+    //     .NTAPS(NTAPS),
+    //     .WIDTH(WIDTH),
+    //     .MAX_DIV(MAX_DIV)
+    // ) u_rgb_blink (
+    //     .clk        (clk_sys),
+    //     .reset_n    (sys_reset_n),
+    //     .taps       (taps),
+    //     .r          (r),
+    //     .g          (g),
+    //     .b          (b)
+    // );
+
+    localparam [9:0] RGB_MAX = 10'd256;  
+
+    rgb_pwm_fade #(
+        .CLK_HZ     (CLK_SYS_HZ),
+        .NTAPS      (NTAPS),
+        .WIDTH      (WIDTH),
+        .MAX_DIV    (MAX_DIV),
+        .PWM_LIMIT  (RGB_MAX)
+    ) u_rgb_pwm (
+        .clk     (clk_sys),
+        .reset_n (sys_reset_n),
+        .taps    (taps),
+        .r       (r),
+        .g       (g),
+        .b       (b)
     );
 
     // ============================================================

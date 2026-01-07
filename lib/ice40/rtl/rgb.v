@@ -19,14 +19,14 @@ module rgb_led (
         .RGBLEDEN (1'b1),  // Enable LED driver
 
         // PWM / enable inputs (active-high)
-        .RGB0PWM  (r),
-        .RGB1PWM  (g),
-        .RGB2PWM  (b),
+        .RGB0PWM  (b),
+        .RGB1PWM  (r),
+        .RGB2PWM  (g),
 
         // Physical LED pins (active-low sinks)
-        .RGB0     (LED_R),
-        .RGB1     (LED_G),
-        .RGB2     (LED_B)
+        .RGB0     (LED_B),
+        .RGB1     (LED_R),
+        .RGB2     (LED_G)
     );
 
 endmodule
