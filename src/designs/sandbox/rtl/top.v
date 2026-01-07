@@ -240,7 +240,7 @@ module top #(
     //     .b          (b)
     // );
 
-    localparam [9:0] RGB_MAX = 10'd256;  
+    localparam [9:0] RGB_MAX = 10'd64;  
 
     rgb_pwm_fade #(
         .CLK_HZ     (CLK_SYS_HZ),

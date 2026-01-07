@@ -90,10 +90,11 @@ $(FLAT_DOT): $(VERILOG_FILES) | $(RTLVIEW_DIR)
 		hierarchy -top $(TOP_MODULE); \
 		proc; opt; techmap; opt; clean; \
 		show -stretch -width -signed -format dot -colors 42 -prefix $(FLAT_PREFIX) \
-	"
+	" >/dev/null 2>&1
 
 $(FLAT_SVG): $(FLAT_DOT)
-	dot -Tsvg $< -o $@
+	@echo "Rendering flattened SVG: $@"
+	@dot -Tsvg "$<" -o "$@" >/dev/null 2>&1
 
 # ------------------------------------------------------------
 # Hierarchical RTL view
@@ -152,6 +153,8 @@ rtlview-hier-svg: $(HIER_DOT)
 
 	@echo "Rendering hierarchical SVGs..."
 	@for f in $(HIER_DOT_DIR)/*.dot; do \
-		echo "  Rendering $$f"; \
-		dot -Tsvg $$f -o $(HIER_SVG_DIR)/$$(basename $$f .dot).svg; \
+	echo "  Rendering $$(basename $$f)"; \
+	dot -Tsvg "$$f" \
+	    -o "$(HIER_SVG_DIR)/$$(basename $$f .dot).svg" \
+	    >/dev/null 2>&1; \
 	done

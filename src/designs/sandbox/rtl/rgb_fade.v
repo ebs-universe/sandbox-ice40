@@ -1,16 +1,19 @@
-// rgb_pwm_fade.v — CE-safe RGB PWM fade demo
+// rgb_pwm_fade.v — tc + pwm_bank validation workload
+// Version with pipelined ramp comparison (A. Split comparison from update)
+
 module rgb_pwm_fade #(
     parameter integer CLK_HZ,
 
+    // PWM parameters
     parameter integer PWM_BITS    = 10,
     parameter integer PWM_FREQ_HZ = 2_000,
 
-    // Fade times (0 → max) in ms
-    parameter integer R_FADE_MS =  9_000,
-    parameter integer G_FADE_MS = 13_000,
-    parameter integer B_FADE_MS = 21_000,
+    // Fade times (0 → max) in milliseconds
+    parameter integer R_FADE_MS =  3_000,
+    parameter integer G_FADE_MS =  4_330,
+    parameter integer B_FADE_MS =  7_000,
 
-    // Ramp update rate
+    // Update cadence (human-scale)
     parameter integer UPDATE_US = 10_000,
 
     // Brightness cap
@@ -30,13 +33,17 @@ module rgb_pwm_fade #(
     output wire b
 );
 
+    // ------------------------------------------------------------
+    // PWM carrier period
+    // ------------------------------------------------------------
     localparam integer PWM_PERIOD =
         CLK_HZ / PWM_FREQ_HZ - 1;
 
     // ------------------------------------------------------------
-    // Update tick (data signal only)
+    // Slow update tick (data signal, NOT a clock)
     // ------------------------------------------------------------
-    wire update_tick;
+    wire update_tick_raw;
+    reg  update_tick;
 
     periodic_tick #(
         .CLK_HZ    (CLK_HZ),
@@ -48,108 +55,138 @@ module rgb_pwm_fade #(
         .clk     (clk),
         .reset_n (reset_n),
         .taps    (taps),
-        .tick    (update_tick)
+        .tick    (update_tick_raw)
     );
 
-    // ------------------------------------------------------------
-    // Step sizes
-    // ------------------------------------------------------------
-    localparam integer R_STEPS = (R_FADE_MS * 1000) / UPDATE_US;
-    localparam integer G_STEPS = (G_FADE_MS * 1000) / UPDATE_US;
-    localparam integer B_STEPS = (B_FADE_MS * 1000) / UPDATE_US;
-
-    localparam integer R_STEP = (PWM_LIMIT + R_STEPS - 1) / R_STEPS;
-    localparam integer G_STEP = (PWM_LIMIT + G_STEPS - 1) / G_STEPS;
-    localparam integer B_STEP = (PWM_LIMIT + B_STEPS - 1) / B_STEPS;
+    always @(posedge clk) begin
+        if (!reset_n)
+            update_tick <= 1'b0;
+        else
+            update_tick <= update_tick_raw;
+    end
 
     // ------------------------------------------------------------
-    // Duty + direction state
+    // Fixed-amplitude quantum
+    // ------------------------------------------------------------
+    localparam integer RAMP_STEPS = 20;
+
+    localparam integer Q =
+        (PWM_LIMIT + RAMP_STEPS - 1) / RAMP_STEPS;
+
+    localparam integer Q_SAFE = (Q < 1) ? 1 : Q;
+
+    // ------------------------------------------------------------
+    // Per-color cadence divisors
+    // ------------------------------------------------------------
+    localparam integer R_DIV = (R_FADE_MS * 1000) / (UPDATE_US * RAMP_STEPS);
+    localparam integer G_DIV = (G_FADE_MS * 1000) / (UPDATE_US * RAMP_STEPS);
+    localparam integer B_DIV = (B_FADE_MS * 1000) / (UPDATE_US * RAMP_STEPS);
+
+    localparam integer R_DIV_S = (R_DIV < 1) ? 1 : R_DIV;
+    localparam integer G_DIV_S = (G_DIV < 1) ? 1 : G_DIV;
+    localparam integer B_DIV_S = (B_DIV < 1) ? 1 : B_DIV;
+
+    // ------------------------------------------------------------
+    // Ramp state
     // ------------------------------------------------------------
     reg [PWM_BITS-1:0] duty_r, duty_g, duty_b;
     reg                dir_r,  dir_g,  dir_b;
 
-    reg [PWM_BITS-1:0] duty_r_n, duty_g_n, duty_b_n;
-    reg                dir_r_n,  dir_g_n,  dir_b_n;
+    reg [$clog2(R_DIV_S):0] r_cnt;
+    reg [$clog2(G_DIV_S):0] g_cnt;
+    reg [$clog2(B_DIV_S):0] b_cnt;
 
     // ------------------------------------------------------------
-    // Next-state ramp logic (NO CE)
+    // Stage 1: boundary detection (PIPELINED)
     // ------------------------------------------------------------
-    always @(*) begin
-        duty_r_n = duty_r;  dir_r_n = dir_r;
-        duty_g_n = duty_g;  dir_g_n = dir_g;
-        duty_b_n = duty_b;  dir_b_n = dir_b;
+    reg hit_r, hit_g, hit_b;
+    reg hit_r_min, hit_g_min, hit_b_min;
 
-        if (update_tick) begin
-            // R
-            if (!dir_r) begin
-                if (duty_r + R_STEP >= PWM_LIMIT) begin
-                    duty_r_n = PWM_LIMIT;
-                    dir_r_n  = 1'b1;
-                end else
-                    duty_r_n = duty_r + R_STEP;
-            end else begin
-                if (duty_r <= R_STEP) begin
-                    duty_r_n = 0;
-                    dir_r_n  = 1'b0;
-                end else
-                    duty_r_n = duty_r - R_STEP;
-            end
+    always @(posedge clk) begin
+        if (!reset_n) begin
+            hit_r     <= 1'b0; hit_r_min <= 1'b0;
+            hit_g     <= 1'b0; hit_g_min <= 1'b0;
+            hit_b     <= 1'b0; hit_b_min <= 1'b0;
+        end else if (update_tick) begin
+            hit_r     <= (!dir_r) && (duty_r + Q_SAFE >= PWM_LIMIT);
+            hit_r_min <= ( dir_r) && (duty_r <= Q_SAFE);
 
-            // G
-            if (!dir_g) begin
-                if (duty_g + G_STEP >= PWM_LIMIT) begin
-                    duty_g_n = PWM_LIMIT;
-                    dir_g_n  = 1'b1;
-                end else
-                    duty_g_n = duty_g + G_STEP;
-            end else begin
-                if (duty_g <= G_STEP) begin
-                    duty_g_n = 0;
-                    dir_g_n  = 1'b0;
-                end else
-                    duty_g_n = duty_g - G_STEP;
-            end
+            hit_g     <= (!dir_g) && (duty_g + Q_SAFE >= PWM_LIMIT);
+            hit_g_min <= ( dir_g) && (duty_g <= Q_SAFE);
 
-            // B
-            if (!dir_b) begin
-                if (duty_b + B_STEP >= PWM_LIMIT) begin
-                    duty_b_n = PWM_LIMIT;
-                    dir_b_n  = 1'b1;
-                end else
-                    duty_b_n = duty_b + B_STEP;
-            end else begin
-                if (duty_b <= B_STEP) begin
-                    duty_b_n = 0;
-                    dir_b_n  = 1'b0;
-                end else
-                    duty_b_n = duty_b - B_STEP;
-            end
+            hit_b     <= (!dir_b) && (duty_b + Q_SAFE >= PWM_LIMIT);
+            hit_b_min <= ( dir_b) && (duty_b <= Q_SAFE);
         end
     end
 
     // ------------------------------------------------------------
-    // Register ramp state (always update)
+    // Stage 2: ramp update (via ramp_step)
     // ------------------------------------------------------------
     always @(posedge clk) begin
         if (!reset_n) begin
-            duty_r <= 0; dir_r <= 0;
-            duty_g <= 0; dir_g <= 0;
-            duty_b <= 0; dir_b <= 0;
-        end else begin
-            duty_r <= duty_r_n; dir_r <= dir_r_n;
-            duty_g <= duty_g_n; dir_g <= dir_g_n;
-            duty_b <= duty_b_n; dir_b <= dir_b_n;
+            r_cnt <= 0;
+            g_cnt <= 0;
+            b_cnt <= 0;
+        end else if (update_tick) begin
+            r_cnt <= (r_cnt == R_DIV_S-1) ? 0 : r_cnt + 1'b1;
+            g_cnt <= (g_cnt == G_DIV_S-1) ? 0 : g_cnt + 1'b1;
+            b_cnt <= (b_cnt == B_DIV_S-1) ? 0 : b_cnt + 1'b1;
         end
     end
 
+    ramp_step #(.BITS(PWM_BITS)) u_ramp_r (
+        .clk     (clk),
+        .reset_n (reset_n),
+        .step_en (update_tick && (r_cnt == R_DIV_S-1)),
+        .q       (Q_SAFE),
+        .max_val (PWM_LIMIT),
+        .dir_in  (dir_r),
+        .val_in  (duty_r),
+        .hit_max (hit_r),
+        .hit_min (hit_r_min),
+        .dir_out (dir_r),
+        .val_out (duty_r)
+    );
+
+    ramp_step #(.BITS(PWM_BITS)) u_ramp_g (
+        .clk     (clk),
+        .reset_n (reset_n),
+        .step_en (update_tick && (g_cnt == G_DIV_S-1)),
+        .q       (Q_SAFE),
+        .max_val (PWM_LIMIT),
+        .dir_in  (dir_g),
+        .val_in  (duty_g),
+        .hit_max (hit_g),
+        .hit_min (hit_g_min),
+        .dir_out (dir_g),
+        .val_out (duty_g)
+    );
+
+    ramp_step #(.BITS(PWM_BITS)) u_ramp_b (
+        .clk     (clk),
+        .reset_n (reset_n),
+        .step_en (update_tick && (b_cnt == B_DIV_S-1)),
+        .q       (Q_SAFE),
+        .max_val (PWM_LIMIT),
+        .dir_in  (dir_b),
+        .val_in  (duty_b),
+        .hit_max (hit_b),
+        .hit_min (hit_b_min),
+        .dir_out (dir_b),
+        .val_out (duty_b)
+    );
+
     // ------------------------------------------------------------
-    // PWM bank
+    // PWM bank (unchanged)
     // ------------------------------------------------------------
     wire [2:0] pwm_sig;
 
     pwm_bank #(
-        .N_CH     (3),
-        .CNT_BITS (PWM_BITS)
+        .N_CH           (3),
+        .CNT_BITS       (PWM_BITS),
+        .PHASE_CORRECT  (1'b0),
+        .HAS_PHASE_CTRL (1'b0),
+        .HAS_CH_PHASE   (1'b0)
     ) u_pwm (
         .clk        (clk),
         .reset_n    (reset_n),
@@ -159,6 +196,7 @@ module rgb_pwm_fade #(
         .sync       (1'b0),
         .phase      ({PWM_BITS{1'b0}}),
         .use_phase  (1'b0),
+        .ch_phase   ({3*PWM_BITS{1'b0}}),
         .pwm        (pwm_sig),
         .cycle_start()
     );
