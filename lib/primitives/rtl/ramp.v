@@ -1,4 +1,4 @@
-// ramp_step.v — single-step bidirectional ramp kernel
+// single-step bidirectional ramp kernel
 // Purely synchronous, tick-driven, no counters, no clocks, no combinational outputs
 module ramp_step #(
     parameter integer BITS = 10
