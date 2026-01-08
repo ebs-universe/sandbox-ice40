@@ -1,11 +1,5 @@
 // ------------------------------------------------------------
-// fifo8.v — 512-byte FIFO, CE-free, registered empty
-// ------------------------------------------------------------
-// - Fixed depth: 512
-// - Pipelined write (write_pending)
-// - Internal 1-entry read buffer
-// - Unconditional RAM access (no CEN)
-// - fifo_empty registered to break ptr feedback loop
+// fifo8.v — 512-byte FIFO, CE-free, registered empty + wready
 // ------------------------------------------------------------
 
 module fifo8 (
@@ -46,14 +40,29 @@ module fifo8 (
     reg [7:0]        wdata_d;
     reg [ADDR_W-1:0] wr_addr_d;
 
+    // Full detection (accurate, combinational)
     wire fifo_full =
         (wr_ptr[ADDR_W]     != rd_ptr[ADDR_W]) &&
         (wr_ptr[ADDR_W-1:0] == rd_ptr[ADDR_W-1:0]);
 
-    assign wready = !fifo_full && !write_pending;
-    wire do_write = wvalid && wready;
+    // ------------------------------------------------------------
+    // REGISTERED wready (SAFE PESSIMISM)
+    // ------------------------------------------------------------
+    reg wready_r;
 
+    always @(posedge clk) begin
+        if (!reset_n || flush)
+            wready_r <= 1'b0;
+        else
+            wready_r <= !fifo_full && !write_pending;
+    end
+
+    assign wready = wready_r;
+    wire do_write = wvalid && wready_r;
+
+    // ------------------------------------------------------------
     // Write decision stage
+    // ------------------------------------------------------------
     always @(posedge clk) begin
         if (!reset_n || flush) begin
             write_pending <= 1'b0;
@@ -66,7 +75,9 @@ module fifo8 (
         end
     end
 
+    // ------------------------------------------------------------
     // Write commit (no CEN)
+    // ------------------------------------------------------------
     always @(posedge clk) begin
         if (!reset_n || flush)
             wr_ptr <= { (ADDR_W+1){1'b0} };
@@ -96,7 +107,6 @@ module fifo8 (
     wire fill_buf = !rvalid && !fifo_empty_r;
     wire consume  = rvalid && rready;
 
-    // Unconditional RAM read
     wire [7:0] mem_rdata = mem[rd_ptr[ADDR_W-1:0]];
 
     always @(posedge clk) begin
@@ -115,7 +125,7 @@ module fifo8 (
     end
 
     // ------------------------------------------------------------
-    // Read pointer advance (no CEN)
+    // Read pointer advance
     // ------------------------------------------------------------
     always @(posedge clk) begin
         if (!reset_n || flush)
