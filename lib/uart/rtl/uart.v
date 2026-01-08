@@ -1,7 +1,6 @@
 module uart #(
     parameter integer CLK_HZ = 48_000_000,
-    parameter integer BAUD   = 1_000_000,
-    parameter integer TX_FIFO_DEPTH = 1024
+    parameter integer BAUD   = 1_000_000
 )(
     input  wire clk,
     input  wire reset_n,
@@ -50,9 +49,7 @@ module uart #(
     wire       tx_fifo_rvalid;
     reg        tx_fifo_rready;
 
-    fifo8 #(
-        .DEPTH (TX_FIFO_DEPTH)
-    ) u_tx_fifo (
+    fifo8 u_tx_fifo (
         .clk          (clk),
         .reset_n      (reset_n),
 
@@ -74,35 +71,43 @@ module uart #(
     );
 
     // ------------------------------------------------------------
-    // TX holding register (CRITICAL)
+    // TX holding register (CE-FREE, PIPELINED)
     // ------------------------------------------------------------
     reg  [7:0] tx_hold_data;
     reg        tx_hold_valid;
+    reg        tx_fifo_rready;
 
-    wire tx_accept;
+    // tx_accept is now simply uart_tx readiness
+    wire tx_accept = tx_tx_ready;
 
-    assign tx_accept = tx_hold_valid && tx_tx_ready;
+    // combinational load condition
+    wire load_hold = tx_tx_ready && tx_fifo_rvalid;
 
     always @(posedge clk) begin
         if (!reset_n) begin
-            tx_hold_valid <= 1'b0;
-            tx_fifo_rready   <= 1'b0;
-        end else begin
+            tx_hold_data   <= 8'd0;
+            tx_hold_valid  <= 1'b0;
             tx_fifo_rready <= 1'b0;
+        end else begin
+            // ----------------------------------------------------
+            // tx_hold_data — UNCONDITIONAL REGISTER (NO CEN)
+            // ----------------------------------------------------
+            tx_hold_data <= load_hold ? tx_fifo_rdata : tx_hold_data;
 
-            // consume by uart_tx
-            if (tx_accept) begin
-                tx_hold_valid <= 1'b0;
+            // ----------------------------------------------------
+            // tx_hold_valid — pipeline semantics
+            // ----------------------------------------------------
+            if (tx_tx_ready) begin
+                tx_hold_valid <= tx_fifo_rvalid;
             end
 
-            // load from FIFO when empty
-            if (!tx_hold_valid && tx_fifo_rvalid) begin
-                tx_hold_data  <= tx_fifo_rdata;
-                tx_hold_valid <= 1'b1;
-                tx_fifo_rready   <= 1'b1;
-            end
+            // ----------------------------------------------------
+            // FIFO read handshake
+            // ----------------------------------------------------
+            tx_fifo_rready <= load_hold;
         end
     end
+
 
     // ------------------------------------------------------------
     // UART TX (UNCHANGED behavior)

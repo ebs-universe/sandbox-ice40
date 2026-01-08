@@ -151,12 +151,11 @@ module top #(
             tx_data  <= 8'h00;
             tx_valid <= 1'b0;
         end else begin
-            if (tx_ready && !tx_valid) begin
-                tx_valid <= 1'b1;
-            end else if (tx_valid && tx_ready) begin
-                tx_data  <= tx_data + 1'b1;
-                tx_valid <= 1'b0;
-            end
+            // tx_valid: generate a 1-cycle pulse when ready
+            tx_valid <= (tx_ready && !tx_valid);
+
+            // tx_data: advance ONLY when a transfer actually happens
+            tx_data  <= (tx_valid && tx_ready) ? (tx_data + 1'b1) : tx_data;
         end
     end
 

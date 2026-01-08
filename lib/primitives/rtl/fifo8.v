@@ -29,39 +29,63 @@ module fifo8 #(
     reg [ADDR_W-1:0] rd_ptr;
     reg [ADDR_W-1:0] wr_ptr;
 
-    wire do_write = wvalid && (level != DEPTH);
-    wire do_read  = rready && (level != 0);
+    reg fifo_not_full;
+    reg fifo_not_empty;
 
-    assign wready = (level != DEPTH);
-    assign rvalid = (level != 0);
+    always @(posedge clk) begin
+        if (!reset_n || flush) begin
+            fifo_not_full  <= 1'b1;
+            fifo_not_empty <= 1'b0;
+        end else begin
+            fifo_not_full  <= (level != DEPTH);
+            fifo_not_empty <= (level != 0);
+        end
+    end
+
+    // ------------------------------------------------------------
+    // Status / handshake
+    // ------------------------------------------------------------
+    wire do_write = wvalid && fifo_not_full;
+    wire do_read  = rready && fifo_not_empty;
+
+    assign wready = fifo_not_full;
+    assign rvalid = fifo_not_empty;
 
     assign almost_full  = (level >= AFULL_LEVEL);
     assign almost_empty = (level <= AEMPTY_LEVEL);
 
+    // ------------------------------------------------------------
+    // Pointers and level (NO clock enables)
+    // ------------------------------------------------------------
     always @(posedge clk) begin
         if (!reset_n || flush) begin
-            rd_ptr <= 0;
-            wr_ptr <= 0;
-            level  <= 0;
+            rd_ptr <= {ADDR_W{1'b0}};
+            wr_ptr <= {ADDR_W{1'b0}};
+            level  <= {($clog2(DEPTH+1)){1'b0}};
         end else begin
-            if (do_write) begin
-                mem[wr_ptr] <= wdata;
-                wr_ptr <= wr_ptr + 1'b1;
-            end
+            // write pointer
+            wr_ptr <= wr_ptr + {{(ADDR_W-1){1'b0}}, do_write};
 
-            if (do_read) begin
-                rd_ptr <= rd_ptr + 1'b1;
-            end
+            // read pointer
+            rd_ptr <= do_read  ? (rd_ptr + 1'b1) : rd_ptr;
 
-            case ({do_write, do_read})
-                2'b10: level <= level + 1'b1;
-                2'b01: level <= level - 1'b1;
-                default: ;
-            endcase
+            // level update
+            level <= level
+               + {{($clog2(DEPTH+1)-1){1'b0}}, do_write}
+               - {{($clog2(DEPTH+1)-1){1'b0}}, do_read};
         end
     end
 
-    // unconditional read — NO CEN
+    // ------------------------------------------------------------
+    // Memory write (local enable only)
+    // ------------------------------------------------------------
+    always @(posedge clk) begin
+        mem[wr_ptr] <= do_write ? wdata : mem[wr_ptr];
+    end
+
+    // ------------------------------------------------------------
+    // Unconditional read (unchanged)
+    // ------------------------------------------------------------
     always @(posedge clk) begin
         rdata <= mem[rd_ptr];
     end
