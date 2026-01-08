@@ -1,8 +1,14 @@
-module fifo8 #(
-    parameter integer DEPTH = 1024,
-    parameter integer AFULL_LEVEL  = DEPTH - 8,
-    parameter integer AEMPTY_LEVEL = 8
-)(
+// ------------------------------------------------------------
+// fifo8.v — 512-byte synchronous FIFO (iCE40-optimized)
+// ------------------------------------------------------------
+// - Fixed depth: 512 (power of two)
+// - Pointer-based full/empty detection
+// - No clock enables
+// - Same-cycle backpressure
+// - level/almost_* are informational only
+// ------------------------------------------------------------
+
+module fifo8 (
     input  wire clk,
     input  wire reset_n,
 
@@ -18,76 +24,96 @@ module fifo8 #(
 
     input  wire flush,
 
-    output reg [$clog2(DEPTH+1)-1:0] level,
-    output wire almost_full,
-    output wire almost_empty
+    // status (informational)
+    output reg  [8:0] level,          // 0..512
+    output wire       almost_full,
+    output wire       almost_empty
 );
 
-    localparam ADDR_W = $clog2(DEPTH);
+    // ------------------------------------------------------------
+    // Constants
+    // ------------------------------------------------------------
+    localparam DEPTH  = 512;
+    localparam ADDR_W = 8;   // log2(512)
 
+    // ------------------------------------------------------------
+    // Storage
+    // ------------------------------------------------------------
     reg [7:0] mem [0:DEPTH-1];
-    reg [ADDR_W-1:0] rd_ptr;
-    reg [ADDR_W-1:0] wr_ptr;
 
-    reg fifo_not_full;
-    reg fifo_not_empty;
+    // 9-bit pointers: [8] = wrap bit, [7:0] = address
+    reg [ADDR_W:0] wr_ptr;
+    reg [ADDR_W:0] rd_ptr;
 
+    // ------------------------------------------------------------
+    // Full / Empty detection (combinational)
+    // ------------------------------------------------------------
+    wire fifo_empty = (wr_ptr == rd_ptr);
+
+    wire fifo_full  =
+        (wr_ptr[ADDR_W]     != rd_ptr[ADDR_W]) &&
+        (wr_ptr[ADDR_W-1:0] == rd_ptr[ADDR_W-1:0]);
+
+    assign wready = !fifo_full;
+    assign rvalid = !fifo_empty;
+
+    // ------------------------------------------------------------
+    // Handshakes
+    // ------------------------------------------------------------
+    wire do_write = wvalid && wready;
+    wire do_read  = rvalid && rready;
+
+    // ------------------------------------------------------------
+    // Write pointer (unconditional register)
+    // ------------------------------------------------------------
     always @(posedge clk) begin
-        if (!reset_n || flush) begin
-            fifo_not_full  <= 1'b1;
-            fifo_not_empty <= 1'b0;
-        end else begin
-            fifo_not_full  <= (level != DEPTH);
-            fifo_not_empty <= (level != 0);
-        end
+        if (!reset_n || flush)
+            wr_ptr <= { (ADDR_W+1){1'b0} };
+        else
+            wr_ptr <= wr_ptr + {{ADDR_W{1'b0}}, do_write};
     end
 
     // ------------------------------------------------------------
-    // Status / handshake
-    // ------------------------------------------------------------
-    wire do_write = wvalid && fifo_not_full;
-    wire do_read  = rready && fifo_not_empty;
-
-    assign wready = fifo_not_full;
-    assign rvalid = fifo_not_empty;
-
-    assign almost_full  = (level >= AFULL_LEVEL);
-    assign almost_empty = (level <= AEMPTY_LEVEL);
-
-    // ------------------------------------------------------------
-    // Pointers and level (NO clock enables)
+    // Read pointer (unconditional register)
     // ------------------------------------------------------------
     always @(posedge clk) begin
-        if (!reset_n || flush) begin
-            rd_ptr <= {ADDR_W{1'b0}};
-            wr_ptr <= {ADDR_W{1'b0}};
-            level  <= {($clog2(DEPTH+1)){1'b0}};
-        end else begin
-            // write pointer
-            wr_ptr <= wr_ptr + {{(ADDR_W-1){1'b0}}, do_write};
+        if (!reset_n || flush)
+            rd_ptr <= { (ADDR_W+1){1'b0} };
+        else
+            rd_ptr <= rd_ptr + {{ADDR_W{1'b0}}, do_read};
+    end
 
-            // read pointer
-            rd_ptr <= do_read  ? (rd_ptr + 1'b1) : rd_ptr;
+    // ------------------------------------------------------------
+    // Memory write
+    // ------------------------------------------------------------
+    always @(posedge clk) begin
+        if (do_write)
+            mem[wr_ptr[ADDR_W-1:0]] <= wdata;
+    end
 
-            // level update
+    // ------------------------------------------------------------
+    // Memory read (unconditional)
+    // ------------------------------------------------------------
+    always @(posedge clk) begin
+        rdata <= mem[rd_ptr[ADDR_W-1:0]];
+    end
+
+    // ------------------------------------------------------------
+    // Level counter (derived, NOT used for control)
+    // ------------------------------------------------------------
+    always @(posedge clk) begin
+        if (!reset_n || flush)
+            level <= 9'd0;
+        else
             level <= level
-               + {{($clog2(DEPTH+1)-1){1'b0}}, do_write}
-               - {{($clog2(DEPTH+1)-1){1'b0}}, do_read};
-        end
+                   + {{8{1'b0}}, do_write}
+                   - {{8{1'b0}}, do_read};
     end
 
     // ------------------------------------------------------------
-    // Memory write (local enable only)
+    // Almost-full / almost-empty (derived from level)
     // ------------------------------------------------------------
-    always @(posedge clk) begin
-        mem[wr_ptr] <= do_write ? wdata : mem[wr_ptr];
-    end
-
-    // ------------------------------------------------------------
-    // Unconditional read (unchanged)
-    // ------------------------------------------------------------
-    always @(posedge clk) begin
-        rdata <= mem[rd_ptr];
-    end
+    assign almost_full  = (level >= 9'd504);  // 512 - 8
+    assign almost_empty = (level <= 9'd8);
 
 endmodule
