@@ -148,17 +148,18 @@ module top #(
 
     always @(posedge clk_sys) begin
         if (!sys_reset_n) begin
-            tx_data  <= 8'h55;
+            tx_data  <= 8'h00;
             tx_valid <= 1'b0;
         end else begin
-            if (tx_ready) begin
-                tx_data  <= tx_data + 1'b1;
+            if (tx_ready && !tx_valid) begin
                 tx_valid <= 1'b1;
-            end else begin
+            end else if (tx_valid && tx_ready) begin
+                tx_data  <= tx_data + 1'b1;
                 tx_valid <= 1'b0;
             end
         end
     end
+
 
     uart #(
         .CLK_HZ (CLK_SYS_HZ),
