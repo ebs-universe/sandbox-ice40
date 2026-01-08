@@ -1,10 +1,11 @@
 // ------------------------------------------------------------
-// fifo8.v — 512-byte synchronous FIFO (control-optimized)
+// fifo8.v — 512-byte synchronous FIFO with pipelined write
 // ------------------------------------------------------------
-// - Fixed depth: 512
+// - Fixed depth: 512 (power of two)
 // - Pointer-based full/empty detection
+// - 1-cycle pipelined write using write_pending flag
+// - No adders in ready path
 // - No clock enables
-// - No level / almost_*
 // - Same-cycle backpressure preserved
 // ------------------------------------------------------------
 
@@ -36,20 +37,33 @@ module fifo8 (
     // ------------------------------------------------------------
     reg [7:0] mem [0:DEPTH-1];
 
-    // 9-bit pointers: [8] = wrap bit, [7:0] = address
+    // Pointers: [8] = wrap bit, [7:0] = address
     reg [ADDR_W:0] wr_ptr;
     reg [ADDR_W:0] rd_ptr;
 
     // ------------------------------------------------------------
-    // Full / Empty detection (combinational)
+    // Write pipeline state
+    // ------------------------------------------------------------
+    reg             write_pending;
+    reg [7:0]       wdata_d;
+    reg [ADDR_W-1:0] wr_addr_d;
+
+    // ------------------------------------------------------------
+    // Empty detection (unchanged)
     // ------------------------------------------------------------
     wire fifo_empty = (wr_ptr == rd_ptr);
 
-    wire fifo_full  =
+    // ------------------------------------------------------------
+    // Full detection (NO ADDERS)
+    // ------------------------------------------------------------
+    wire fifo_full_now =
         (wr_ptr[ADDR_W]     != rd_ptr[ADDR_W]) &&
         (wr_ptr[ADDR_W-1:0] == rd_ptr[ADDR_W-1:0]);
 
-    assign wready = !fifo_full;
+    // FIFO is not ready if:
+    //  - it is full now, OR
+    //  - a write is already pending commit
+    assign wready = !fifo_full_now && !write_pending;
     assign rvalid = !fifo_empty;
 
     // ------------------------------------------------------------
@@ -59,17 +73,42 @@ module fifo8 (
     wire do_read  = rvalid && rready;
 
     // ------------------------------------------------------------
-    // Write pointer (unconditional register)
+    // Write decision pipeline (cycle N)
+    // ------------------------------------------------------------
+    always @(posedge clk) begin
+        if (!reset_n || flush) begin
+            write_pending <= 1'b0;
+            wdata_d       <= 8'd0;
+            wr_addr_d     <= {ADDR_W{1'b0}};
+        end else begin
+            // latch a new write request
+            if (do_write) begin
+                write_pending <= 1'b1;
+                wdata_d       <= wdata;
+                wr_addr_d     <= wr_ptr[ADDR_W-1:0];
+            end else begin
+                write_pending <= 1'b0;
+            end
+        end
+    end
+
+    // ------------------------------------------------------------
+    // Write commit (cycle N+1)
     // ------------------------------------------------------------
     always @(posedge clk) begin
         if (!reset_n || flush)
             wr_ptr <= { (ADDR_W+1){1'b0} };
         else
-            wr_ptr <= wr_ptr + {{ADDR_W{1'b0}}, do_write};
+            wr_ptr <= wr_ptr + {{ADDR_W{1'b0}}, write_pending};
+    end
+
+    always @(posedge clk) begin
+        if (write_pending)
+            mem[wr_addr_d] <= wdata_d;
     end
 
     // ------------------------------------------------------------
-    // Read pointer (unconditional register)
+    // Read pointer (unchanged)
     // ------------------------------------------------------------
     always @(posedge clk) begin
         if (!reset_n || flush)
@@ -79,15 +118,7 @@ module fifo8 (
     end
 
     // ------------------------------------------------------------
-    // Memory write
-    // ------------------------------------------------------------
-    always @(posedge clk) begin
-        if (do_write)
-            mem[wr_ptr[ADDR_W-1:0]] <= wdata;
-    end
-
-    // ------------------------------------------------------------
-    // Memory read (unconditional)
+    // Memory read (unchanged)
     // ------------------------------------------------------------
     always @(posedge clk) begin
         rdata <= mem[rd_ptr[ADDR_W-1:0]];
