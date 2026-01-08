@@ -16,13 +16,11 @@ module fifo8 #(
     output wire       rvalid,
     input  wire       rready,
 
-    // control
-    input  wire       flush,
+    input  wire flush,
 
-    // status
     output reg [$clog2(DEPTH+1)-1:0] level,
-    output wire                      almost_full,
-    output wire                      almost_empty
+    output wire almost_full,
+    output wire almost_empty
 );
 
     localparam ADDR_W = $clog2(DEPTH);
@@ -31,12 +29,11 @@ module fifo8 #(
     reg [ADDR_W-1:0] rd_ptr;
     reg [ADDR_W-1:0] wr_ptr;
 
-    wire do_write = wvalid && wready;
-    wire do_read  = rvalid && rready;
+    wire do_write = wvalid && (level != DEPTH);
+    wire do_read  = rready && (level != 0);
 
-    // ready / valid
-    assign wready = (level < DEPTH);
-    assign rvalid = (level > 0);
+    assign wready = (level != DEPTH);
+    assign rvalid = (level != 0);
 
     assign almost_full  = (level >= AFULL_LEVEL);
     assign almost_empty = (level <= AEMPTY_LEVEL);
@@ -47,32 +44,26 @@ module fifo8 #(
             wr_ptr <= 0;
             level  <= 0;
         end else begin
+            if (do_write) begin
+                mem[wr_ptr] <= wdata;
+                wr_ptr <= wr_ptr + 1'b1;
+            end
+
+            if (do_read) begin
+                rd_ptr <= rd_ptr + 1'b1;
+            end
+
             case ({do_write, do_read})
-                2'b10: begin
-                    mem[wr_ptr] <= wdata;
-                    wr_ptr <= wr_ptr + 1'b1;
-                    level  <= level + 1'b1;
-                end
-                2'b01: begin
-                    rd_ptr <= rd_ptr + 1'b1;
-                    level  <= level - 1'b1;
-                end
-                2'b11: begin
-                    mem[wr_ptr] <= wdata;
-                    wr_ptr <= wr_ptr + 1'b1;
-                    rd_ptr <= rd_ptr + 1'b1;
-                    // level unchanged
-                end
+                2'b10: level <= level + 1'b1;
+                2'b01: level <= level - 1'b1;
                 default: ;
             endcase
         end
     end
 
-    // registered read data (safe for timing)
+    // unconditional read — NO CEN
     always @(posedge clk) begin
-        if (rvalid) begin
-            rdata <= mem[rd_ptr];
-        end
+        rdata <= mem[rd_ptr];
     end
 
 endmodule
