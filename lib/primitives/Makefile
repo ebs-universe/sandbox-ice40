@@ -10,7 +10,10 @@ LIB_RTL  := \
 	$(THIS_DIR)/rtl/clkdiv.v \
 	$(THIS_DIR)/rtl/sync1.v \
 	$(THIS_DIR)/rtl/shift8.v \
-	$(THIS_DIR)/rtl/ramp.v
+	$(THIS_DIR)/rtl/ramp.v \
+	$(THIS_DIR)/rtl/fifo8.v \
+	$(THIS_DIR)/rtl/filter_majority.v \
+	$(THIS_DIR)/rtl/level_duration_detect.v
 
 VERILOG_FILES += $(LIB_RTL)
 endif
