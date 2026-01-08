@@ -20,12 +20,6 @@ module uart #(
     output wire [7:0] rx_data,
     output wire       rx_valid,
     input  wire       rx_ready,
-
-    // -------------------------
-    // Optional TX status
-    // -------------------------
-    output wire       tx_almost_full,
-    output wire       tx_almost_empty
 );
 
     // ------------------------------------------------------------
@@ -64,10 +58,6 @@ module uart #(
         .rready       (tx_fifo_rready),
 
         .flush        (1'b0),
-
-        .level        (),
-        .almost_full  (tx_almost_full),
-        .almost_empty (tx_almost_empty)
     );
 
     // ------------------------------------------------------------

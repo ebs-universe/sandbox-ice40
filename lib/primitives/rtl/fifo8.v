@@ -1,11 +1,11 @@
 // ------------------------------------------------------------
-// fifo8.v — 512-byte synchronous FIFO (iCE40-optimized)
+// fifo8.v — 512-byte synchronous FIFO (control-optimized)
 // ------------------------------------------------------------
-// - Fixed depth: 512 (power of two)
+// - Fixed depth: 512
 // - Pointer-based full/empty detection
 // - No clock enables
-// - Same-cycle backpressure
-// - level/almost_* are informational only
+// - No level / almost_*
+// - Same-cycle backpressure preserved
 // ------------------------------------------------------------
 
 module fifo8 (
@@ -22,12 +22,7 @@ module fifo8 (
     output wire       rvalid,
     input  wire       rready,
 
-    input  wire flush,
-
-    // status (informational)
-    output reg  [8:0] level,          // 0..512
-    output wire       almost_full,
-    output wire       almost_empty
+    input  wire flush
 );
 
     // ------------------------------------------------------------
@@ -97,23 +92,5 @@ module fifo8 (
     always @(posedge clk) begin
         rdata <= mem[rd_ptr[ADDR_W-1:0]];
     end
-
-    // ------------------------------------------------------------
-    // Level counter (derived, NOT used for control)
-    // ------------------------------------------------------------
-    always @(posedge clk) begin
-        if (!reset_n || flush)
-            level <= 9'd0;
-        else
-            level <= level
-                   + {{8{1'b0}}, do_write}
-                   - {{8{1'b0}}, do_read};
-    end
-
-    // ------------------------------------------------------------
-    // Almost-full / almost-empty (derived from level)
-    // ------------------------------------------------------------
-    assign almost_full  = (level >= 9'd504);  // 512 - 8
-    assign almost_empty = (level <= 9'd8);
 
 endmodule
