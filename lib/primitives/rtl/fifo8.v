@@ -1,4 +1,4 @@
-module fifo_byte #(
+module fifo8 #(
     parameter integer DEPTH = 1024,
     parameter integer AFULL_LEVEL  = DEPTH - 8,
     parameter integer AEMPTY_LEVEL = 8
