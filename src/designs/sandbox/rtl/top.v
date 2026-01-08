@@ -160,17 +160,27 @@ module top #(
         end
     end
 
-    uart_tx #(
+    wire uart_bit_ce;
+
+    uart_baudgen #(
         .CLK_HZ (CLK_SYS_HZ),
         .BAUD   (UART_BAUD)
-    ) u_uart (
+    ) u_uart_baudgen (
+        .clk     (clk_sys),
+        .reset_n (sys_reset_n),
+        .bit_ce  (uart_bit_ce)
+    );
+
+    uart_tx u_uart (
         .clk     (clk_sys),
         .reset_n (sys_reset_n),
         .data    (tx_data),
         .valid   (tx_valid),
         .ready   (tx_ready),
+        .bit_ce  (uart_bit_ce), 
         .tx      (UART_TX)
     );
+
 
 
     // ============================================================
