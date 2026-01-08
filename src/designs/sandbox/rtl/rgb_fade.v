@@ -134,10 +134,37 @@ module rgb_pwm_fade #(
         end
     end
 
+    reg step_r;
+
+    always @(posedge clk) begin
+        if (!reset_n)
+            step_r <= 1'b0;
+        else
+            step_r <= update_tick && (r_cnt == R_DIV_S-1);
+    end
+
+    reg step_g;
+
+    always @(posedge clk) begin
+        if (!reset_n)
+            step_g <= 1'b0;
+        else
+            step_g <= update_tick && (g_cnt == G_DIV_S-1);
+    end
+    
+    reg step_b;
+
+    always @(posedge clk) begin
+        if (!reset_n)
+            step_b <= 1'b0;
+        else
+            step_b <= update_tick && (b_cnt == B_DIV_S-1);
+    end
+
     ramp_step #(.BITS(PWM_BITS)) u_ramp_r (
         .clk     (clk),
         .reset_n (reset_n),
-        .step_en (update_tick && (r_cnt == R_DIV_S-1)),
+        .step_en (step_r),
         .q       (Q_SAFE),
         .max_val (PWM_LIMIT),
         .dir_in  (dir_r),
@@ -151,7 +178,7 @@ module rgb_pwm_fade #(
     ramp_step #(.BITS(PWM_BITS)) u_ramp_g (
         .clk     (clk),
         .reset_n (reset_n),
-        .step_en (update_tick && (g_cnt == G_DIV_S-1)),
+        .step_en (step_g),
         .q       (Q_SAFE),
         .max_val (PWM_LIMIT),
         .dir_in  (dir_g),
@@ -165,7 +192,7 @@ module rgb_pwm_fade #(
     ramp_step #(.BITS(PWM_BITS)) u_ramp_b (
         .clk     (clk),
         .reset_n (reset_n),
-        .step_en (update_tick && (b_cnt == B_DIV_S-1)),
+        .step_en (step_b),
         .q       (Q_SAFE),
         .max_val (PWM_LIMIT),
         .dir_in  (dir_b),
