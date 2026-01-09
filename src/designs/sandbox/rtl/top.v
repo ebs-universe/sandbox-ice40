@@ -141,42 +141,33 @@ module top #(
     // ------------------------------------------------------------
     // Simple data source: incrementing counter
     // ------------------------------------------------------------
-    reg [7:0] tx_data;
-    reg       tx_valid;
+    // uart_ex1 u_uart_demo (
+    //     .clk      (clk_sys),
+    //     .reset_n  (sys_reset_n),
 
-    wire tx_ready;
+    //     .uart_tx  (UART_TX),
+    //     .uart_rx  (UART_RX)
+    // );
+    
+    wire [7:0] uart_leds;
 
-    always @(posedge clk_sys) begin
-        if (!sys_reset_n) begin
-            tx_data  <= 8'h00;
-            tx_valid <= 1'b0;
-        end else begin
-            // tx_valid: generate a 1-cycle pulse when ready
-            tx_valid <= (tx_ready && !tx_valid);
-
-            // tx_data: advance ONLY when a transfer actually happens
-            tx_data  <= (tx_valid && tx_ready) ? (tx_data + 1'b1) : tx_data;
-        end
-    end
-
-
-    uart #(
-        .CLK_HZ (CLK_SYS_HZ),
-        .BAUD   (UART_BAUD)
-    ) u_uart (
+    uart_ex3 #(
+        .CLK_HZ   (CLK_SYS_HZ),
+        .BAUD     (UART_BAUD),
+        .NTAPS    (NTAPS),
+        .WIDTH    (WIDTH),
+        .MAX_DIV  (MAX_DIV)
+    ) u_uart_ex3 (
         .clk       (clk_sys),
         .reset_n   (sys_reset_n),
+        .taps      (taps),
 
-        .tx_data   (tx_data),
-        .tx_valid  (tx_valid),
-        .tx_ready  (tx_ready),
-        .tx        (UART_TX),
+        .uart_rx   (UART_RX),
+        .uart_tx   (UART_TX),
 
-        .rx        (UART_RX),
-        .rx_data   (),
-        .rx_valid  (),
-        .rx_ready  (1'b1)
+        .led       (uart_leds)
     );
+
 
 
     // ============================================================
@@ -277,7 +268,7 @@ module top #(
     );
 
     pmod_led8 u_leds (
-        .val    (loop),
+        .val    (uart_leds),
         .LED_L1 (LED_L1),
         .LED_L2 (LED_L2),
         .LED_L3 (LED_L3),

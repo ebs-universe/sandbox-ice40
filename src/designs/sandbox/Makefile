@@ -9,7 +9,10 @@ VERILOG_FILES := \
 	$(THIS_DIR)/rtl/counter.v \
 	$(THIS_DIR)/rtl/loop.v \
 	$(THIS_DIR)/rtl/rgb_blink.v \
-	$(THIS_DIR)/rtl/rgb_fade.v
+	$(THIS_DIR)/rtl/rgb_fade.v \
+	$(THIS_DIR)/rtl/uart_ex1.v \
+	$(THIS_DIR)/rtl/uart_ex2.v \
+	$(THIS_DIR)/rtl/uart_ex3.v 
 
 VERILOG_INCLUDES :=
 VERILOG_PACKAGES :=

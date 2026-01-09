@@ -34,6 +34,21 @@ module reset #(
 
     wire pll_lock_syncd = pll_lock_sync[1];
 
+    reg [7:0] post_lock_cnt;
+    reg         reset_req;
+
+    always @(posedge clk) begin
+        if (!pll_lock_syncd) begin
+            post_lock_cnt <= 0;
+            reset_req     <= 1'b1;
+        end else if (post_lock_cnt != 7'd254) begin
+            post_lock_cnt <= post_lock_cnt + 1;
+            reset_req     <= 1'b1;
+        end else begin
+            reset_req     <= 1'b0;
+        end
+    end
+
     // ------------------------------------------------------------
     // Qualify reset assertion width (counter)
     // ------------------------------------------------------------
