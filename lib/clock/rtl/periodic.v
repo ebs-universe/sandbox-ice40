@@ -115,16 +115,26 @@ module periodic_tick #(
     // ------------------------------------------------------------
     reg [$clog2(DIV)-1:0] div_cnt;
 
+    reg tick_r;
+
     always @(posedge clk) begin
-        if (!reset_n)
+        if (!reset_n) begin
             div_cnt <= 0;
-        else if (tap_rise)
-            div_cnt <= (div_cnt == DIV-1) ? 0 : div_cnt + 1'b1;
+            tick_r  <= 1'b0;
+        end else begin
+            tick_r <= 1'b0;
+
+            if (tap_rise) begin
+                if (div_cnt == DIV-1) begin
+                    div_cnt <= 0;
+                    tick_r  <= 1'b1;
+                end else begin
+                    div_cnt <= div_cnt + 1'b1;
+                end
+            end
+        end
     end
 
-    // ------------------------------------------------------------
-    // Single-cycle output pulse
-    // ------------------------------------------------------------
-    assign tick = tap_rise && (div_cnt == DIV-1);
+    assign tick = tick_r;
 
 endmodule
